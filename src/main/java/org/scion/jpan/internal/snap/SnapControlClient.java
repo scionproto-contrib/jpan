@@ -18,12 +18,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Arrays;
+import java.util.List;
+
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.proto.snap.ControlService;
 
@@ -37,6 +40,21 @@ public class SnapControlClient {
   private final OkHttpClient httpClient;
   private final String baseUrl;
 
+  public static SnapControlClient create(LocalAS localAS) {
+    String explicit = Config.getSnapControlPlaneAddress();
+    if (explicit != null && !explicit.isEmpty()) {
+      return new SnapControlClient(explicit);
+    }
+
+    List<LocalAS.SnapControlNode> snapControlNodes = localAS.getSnapControlNodes();
+    if (snapControlNodes.isEmpty()) {
+      return null;
+    }
+    // TODO Choosing only may be alright if the server mixes them up.
+    String address = snapControlNodes.get(0).getAddress();
+    return new SnapControlClient(address);
+  }
+
   public SnapControlClient(String endpoint) {
     // The snap address from the path service is typically a bare IP:port, but the server
     // certificate is issued to a hostname. Skip hostname verification while keeping full TLS
@@ -46,7 +64,7 @@ public class SnapControlClient {
     this.baseUrl = normalizeBaseUrl(endpoint);
   }
 
-  public SnapDataplaneAccess getDataPlaneAddress() {
+  public SnapDataplaneDetails getDataPlaneAddress() {
     try {
       byte[] responseBytes =
           post(
@@ -64,7 +82,7 @@ public class SnapControlClient {
       if (serverStaticX25519 != null && serverStaticX25519.length != 32) {
         throw new IOException("server static x25519 key must be 32 bytes");
       }
-      return new SnapDataplaneAccess(
+      return new SnapDataplaneDetails(
           (InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
     } catch (IOException e) {
       throw new ScionRuntimeException("SNAP GetSnapDataPlaneAddress failed", e);
@@ -97,7 +115,6 @@ public class SnapControlClient {
       if (serverPsk.length != 32) {
         throw new IOException("server psk must be 32 bytes");
       }
-      // TODO expensive way to check for 0-array?
       return Arrays.equals(serverPsk, new byte[32]) ? null : serverPsk;
     } catch (IOException e) {
       throw new ScionRuntimeException("SNAP RegisterSnapTunIdentity failed", e);
@@ -151,5 +168,9 @@ public class SnapControlClient {
       normalized = normalized.substring(0, normalized.length() - 1);
     }
     return normalized;
+  }
+
+  public String getUrl() {
+    return baseUrl;
   }
 }

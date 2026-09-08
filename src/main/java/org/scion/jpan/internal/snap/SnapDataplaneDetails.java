@@ -17,12 +17,12 @@ package org.scion.jpan.internal.snap;
 import java.net.InetSocketAddress;
 
 /** SNAP data plane information returned by the SNAP control API. */
-public class SnapDataplaneAccess {
+public class SnapDataplaneDetails {
   private final InetSocketAddress address;
   private final String snapTunControlAddress;
   private final byte[] snapStaticX25519;
 
-  SnapDataplaneAccess(
+  SnapDataplaneDetails(
       InetSocketAddress address, String snapTunControlAddress, byte[] snapStaticX25519) {
     this.address = address;
     this.snapTunControlAddress = snapTunControlAddress;

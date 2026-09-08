@@ -28,10 +28,7 @@ import org.scion.jpan.internal.bootstrap.EndhostApiDiscoveryClient;
 import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.bootstrap.ScionBootstrapper;
 import org.scion.jpan.internal.paths.*;
-import org.scion.jpan.internal.snap.AAService;
-import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapControlEndpointResolver;
-import org.scion.jpan.internal.snap.SnapDataplaneAccess;
+import org.scion.jpan.internal.snap.*;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.internal.util.IPHelper;
 import org.slf4j.Logger;
@@ -62,7 +59,7 @@ public class ScionService {
   private final ControlServiceGrpc controlService;
   private final PathServiceRpc pathService;
   private final DaemonServiceGrpc daemonService;
-  private final SnapDataplaneAccess snapService;
+  private final SnapDataplaneDetails snapDataplaneDetails;
 
   private final Thread shutdownHook;
 
@@ -81,7 +78,7 @@ public class ScionService {
         ControlServiceGrpc controlService,
         PathServiceRpc pathService,
         DaemonServiceGrpc daemonService,
-        SnapDataplaneAccess snapDataplaneAccess);
+        SnapDataplaneDetails snapDataplaneDetails);
   }
 
   protected ScionService(
@@ -89,12 +86,12 @@ public class ScionService {
       ControlServiceGrpc controlService,
       PathServiceRpc pathService,
       DaemonServiceGrpc daemonService,
-      SnapDataplaneAccess snapDataplaneAccess) {
+      SnapDataplaneDetails snapDataplaneDetails) {
     this.localAS = localAS;
     this.controlService = controlService;
     this.pathService = pathService;
     this.daemonService = daemonService;
-    this.snapService = snapDataplaneAccess;
+    this.snapDataplaneDetails = snapDataplaneDetails;
     this.shutdownHook = addShutdownHook();
   }
 
@@ -119,12 +116,8 @@ public class ScionService {
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
-        SnapDataplaneAccess snapDataplaneAccess = initializeSnapDataPlaneIfEnabled(localAS);
-        if (true) {
-          System.err.println("FIXME: ScionService.create()");
-          // TODO throw new UnsupportedOperationException();
-        }
-        return constructor.create(localAS, null, pathService, null, snapDataplaneAccess);
+        SnapDataplaneDetails snapDataplaneDetails = initializeSnapDataPlaneIfEnabled(localAS);
+        return constructor.create(localAS, null, pathService, null, snapDataplaneDetails);
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromDns(addressOrHost));
@@ -159,20 +152,19 @@ public class ScionService {
     }
   }
 
-  private static SnapDataplaneAccess initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
+  private static SnapDataplaneDetails initializeSnapDataPlaneIfEnabled(LocalAS localAS) {
     if (!Config.isUnderlaySnapAllowed()) {
       return null;
     }
-    String snapControlEndpoint = SnapControlEndpointResolver.resolve(localAS);
-    if (snapControlEndpoint == null || snapControlEndpoint.isEmpty()) {
+    SnapControlClient snapControlClient = SnapControlClient.create(localAS);
+    if (snapControlClient == null) {
       throw new ScionRuntimeException(
-          "SNAP mode is enabled but no SNAP control endpoint is available");
+              "SNAP mode is enabled but no SNAP control endpoint is available");
     }
-    SnapControlClient snapControlClient = new SnapControlClient(snapControlEndpoint);
-    SnapDataplaneAccess dataPlane = snapControlClient.getDataPlaneAddress();
+    SnapDataplaneDetails dataPlane = snapControlClient.getDataPlaneAddress();
     LOG.info(
         "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
-        snapControlEndpoint,
+        snapControlClient.getUrl(),
         dataPlane.getAddress(),
         dataPlane.getSnapTunControlAddress());
     return dataPlane;
@@ -206,7 +198,7 @@ public class ScionService {
         String authService = Config.getSnapAuthenticationService();
         if (authService != null && authKey != null) {
           // TODO overwrite API key char[] and reset property?
-          AAService.Result result = AAService.fetchAll(authKey, authService);
+          AAClient.Result result = AAClient.fetchAll(authKey, authService);
           System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
           String pathServices = null;
           if (result.endhostApiDiscoveryUrl != null) {
@@ -546,8 +538,8 @@ public class ScionService {
     return Config.preferSnapUnderlay();
   }
 
-  SnapDataplaneAccess getSnapDataPlane() {
-    return snapService;
+  SnapDataplaneDetails getSnapDataPlane() {
+    return snapDataplaneDetails;
   }
 
   ControlServiceGrpc getControlServiceConnection() {

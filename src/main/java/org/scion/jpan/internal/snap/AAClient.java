@@ -23,9 +23,9 @@ import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.snap.aa.AuthServiceOuterClass;
 
-public class AAService {
+public class AAClient {
 
-  private AAService() {}
+  private AAClient() {}
 
   public static String fetchSnapToken(String apiKey, String serverUrl) {
     return fetchAll(apiKey, serverUrl).snapToken;

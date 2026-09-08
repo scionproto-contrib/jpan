@@ -20,13 +20,13 @@ import java.io.IOException;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.MockSnapApiTokenService;
 
-class AAServiceTest {
+class AAClientTest {
 
   @Test
   void fetchSnapTokenWithMetadata_noMetadata_discoveryUrlIsNull() throws IOException {
     try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start()) {
-      AAService.Result result =
-          AAService.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+      AAClient.Result result =
+          AAClient.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, result.snapToken);
       assertNull(result.endhostApiDiscoveryUrl);
@@ -37,8 +37,8 @@ class AAServiceTest {
   void fetchSnapTokenWithMetadata_withDiscoveryUrl_isSurfaced() throws IOException {
     String discoveryUrl = "https://discovery.example.com:5001";
     try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start(discoveryUrl)) {
-      AAService.Result result =
-          AAService.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+      AAClient.Result result =
+          AAClient.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, result.snapToken);
       assertEquals(discoveryUrl, result.endhostApiDiscoveryUrl);
@@ -50,7 +50,7 @@ class AAServiceTest {
     try (MockSnapApiTokenService aaService =
         MockSnapApiTokenService.start("https://discovery.example.com:5001")) {
       String token =
-          AAService.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+          AAClient.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
     }
