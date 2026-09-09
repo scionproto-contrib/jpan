@@ -23,11 +23,12 @@ import org.scion.jpan.ScionService;
 import org.scion.jpan.internal.util.Config;
 
 /**
- * Bridges a {@link ScionService}'s SNAP configuration to a {@link SnapUnderlay}. This lives in
- * {@code org.scion.jpan} (rather than alongside {@link SnapUnderlay} in {@code internal.snap})
- * because it needs {@link ScionService}'s package-private SNAP accessors ({@code
- * preferSnapUnderlay()}, {@code getSnapDataPlane()}, {@code getLocalAS()}), which are not visible
- * from a sub-package.
+ * Builds a {@link SnapUnderlay} from already-resolved SNAP configuration -- a {@link
+ * SnapDataplaneDetails} and a {@link DatagramChannel} -- rather than from a {@link ScionService}
+ * directly. Callers in {@code org.scion.jpan} ({@code ScionDatagramChannel}, {@code
+ * ScmpSenderAsync}) fetch {@code service.getSnapDataPlane()} themselves and pass the result in, so
+ * this class never needs cross-package access to any of {@link ScionService}'s package-private
+ * members and can live here, alongside the rest of the SNAP internals.
  */
 public final class SnapUnderlaySupport {
 

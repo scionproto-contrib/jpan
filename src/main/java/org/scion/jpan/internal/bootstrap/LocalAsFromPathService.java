@@ -41,8 +41,7 @@ public class LocalAsFromPathService {
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
     List<LocalAS.SnapControlNode> snapControlNodeList = getSnapControlNodes(u);
 
-    // TODO SNAP
-    if (Config.preferSnapUnderlay()) { // isUnderlaySnapAllowed()) {
+    if (Config.isUnderlaySnapAllowed()) {
       // Note that the SNAP AS may be different from the expected local AS of a local ISP.
       Set<Long> snapIsdAses = getLocalIsdAsFromSnap(u);
       if (!snapIsdAses.isEmpty()) {

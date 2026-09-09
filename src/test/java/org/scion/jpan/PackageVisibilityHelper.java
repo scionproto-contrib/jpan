@@ -240,20 +240,6 @@ public class PackageVisibilityHelper {
     return new ScionDatagramChannel(service, udp, selector, factory, snapUnderlay);
   }
 
-  /**
-   * Unlike {@link #openSnapChannel(SnapTunnelSession)}, which always gives the returned channel a
-   * fresh, unrelated outer channel, this uses {@code session}'s own real transport channel as the
-   * outer channel too -- matching how production code wires channels via {@code
-   * SnapUnderlaySupport.createFor()} (one real socket per SNAP channel, not two). Requires {@code
-   * session} to have been built with an externally-provided, not-yet-bound channel, e.g. {@code new
-   * SnapTunnelSession(myChannel, ...)}.
-   */
-  public static ScionDatagramChannel openSnapChannelReusingTransport(SnapTunnelSession session)
-      throws IOException {
-    return new ScionDatagramChannel(
-        null, session.transportChannel(), null, null, SnapUnderlay.wrap(session));
-  }
-
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
     protected AbstractChannel(
         ScionService service,

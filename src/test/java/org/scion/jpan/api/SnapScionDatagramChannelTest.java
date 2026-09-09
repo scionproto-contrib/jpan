@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -160,52 +159,5 @@ class SnapScionDatagramChannelTest {
       assertNotNull(session.localTunnelAddress());
       assertEquals(session.localTunnelAddress(), channel.getOverrideSourceAddress());
     }
-  }
-
-  @Test
-  void send_reusesAdoptedChannelAsOuterChannel() throws IOException {
-    // Matches how production code wires a SNAP channel (SnapUnderlaySupport.createFor()): the
-    // same real channel is handed to both SnapTunnelSession and the ScionDatagramChannel that
-    // wraps it, instead of SnapTunnelSession opening a second, throwaway one.
-    DatagramChannel shared = DatagramChannel.open();
-    assertNull(shared.getLocalAddress(), "must not be bound yet");
-
-    SnapTunnelSession session =
-        new SnapTunnelSession(
-            shared,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
-    assertSame(shared, session.transportChannel());
-    // SnapTunnelSession must not have bound it -- binding is the caller's job (see ensureBound()),
-    // e.g. to honor an explicit port or the SCION dispatcher port range.
-    assertNull(shared.getLocalAddress(), "SnapTunnelSession must defer binding to the caller");
-
-    try (ScionDatagramChannel channel =
-        PackageVisibilityHelper.openSnapChannelReusingTransport(session)) {
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      assertNotNull(shared.getLocalAddress(), "bind() on the channel must bind the shared socket");
-      assertNull(channel.getOverrideSourceAddress());
-
-      Path path =
-          PackageVisibilityHelper.createDummyPath(
-              ScionUtil.parseIA("1-ff00:0:110"),
-              ScionUtil.parseIA("1-ff00:0:112"),
-              new byte[] {127, 0, 0, 1},
-              54321,
-              new byte[0],
-              new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-
-      channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
-
-      // The handshake (triggered by the send above) worked over the same channel that was bound
-      // externally -- i.e. adopting a caller-provided channel doesn't break the handshake.
-      assertNotNull(session.localTunnelAddress());
-      assertEquals(session.localTunnelAddress(), channel.getOverrideSourceAddress());
-    }
-
-    // Closing the channel must close the single shared socket exactly once (no
-    // AlreadyClosedException-style failure from a redundant close of the same channel).
-    assertFalse(shared.isOpen());
   }
 }

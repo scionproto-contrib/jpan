@@ -58,11 +58,6 @@ public class Config {
     }
   }
 
-  @Deprecated // TODO SNAP
-  public static boolean preferSnapUnderlay() {
-    return UnderlayMode.SNAP.equals(getUnderlayMode());
-  }
-
   public static boolean isUnderlaySnapAllowed() {
     UnderlayMode mode = getUnderlayMode();
     return UnderlayMode.SNAP.equals(mode) || UnderlayMode.AUTO.equals(mode);
