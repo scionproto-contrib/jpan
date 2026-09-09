@@ -32,11 +32,10 @@ import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Covers {@link ScmpSenderAsync} wired up for SNAP end-to-end through the real, public {@link
- * ScmpSenderAsync.Builder} -- i.e. through {@code SnapUnderlaySupport.createFor()} exactly as
- * production code does, backed by a real (mock) {@code ScionService} whose {@code
- * preferSnapUnderlay()}/{@code getSnapDataPlane()} point at a genuinely running {@link
- * org.scion.jpan.testutil.MockSnapService} dataplane+control server (via {@link
- * MockNetwork2#startSnap}).
+ * ScmpSenderAsync.Builder} -- i.e. through {@code SnapUnderlay.createFor()} exactly as production
+ * code does, backed by a real (mock) {@code ScionService} whose {@code preferSnapUnderlay()}/{@code
+ * getSnapDataPlane()} point at a genuinely running {@link org.scion.jpan.testutil.MockSnapService}
+ * dataplane+control server (via {@link MockNetwork2#startSnap}).
  *
  * <p>There is no mock border router wired into this path (unlike the older {@code MockNetwork} +
  * {@code MockScmpHandler} used by {@link ScmpSenderAsyncTest}), so this cannot assert an actual

@@ -39,9 +39,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** SNAP tunnel session using the SNAP-specific WireGuard handshake from ana-gotatun. */
-public class SnapTunnelSession {
+public class SnapTunnel {
 
-  private static final Logger log = LoggerFactory.getLogger(SnapTunnelSession.class);
+  private static final Logger log = LoggerFactory.getLogger(SnapTunnel.class);
 
   private static final byte[] LABEL_MAC1 =
       "mac1----".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
@@ -153,7 +153,7 @@ public class SnapTunnelSession {
    *     before this session ever sends/receives on it). If null (e.g. in tests that don't have a
    *     real outer channel to share), a fresh, already-bound-to-ANY-port channel is opened instead.
    */
-  public SnapTunnelSession(
+  public SnapTunnel(
       DatagramChannel underlay,
       InetSocketAddress dataPlane,
       byte[] peerStatic,

@@ -28,10 +28,7 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.snap.AAClient;
-import org.scion.jpan.internal.snap.SnapControlClient;
-import org.scion.jpan.internal.snap.SnapDataplaneDetails;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.*;
 import org.scion.jpan.testutil.MockSnapApiTokenService;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -48,13 +45,13 @@ import org.scion.jpan.testutil.MockSnapService;
  * - Uses port 0 (ephemeral) to avoid conflicts; getControlAddress() returns the actual host:port
  * after binding
  *
- * <p>PackageVisibilityHelper.java — added openSnapChannel(SnapTunnelSession) to construct a
- * SNAP-mode ScionDatagramChannel from a session directly, for testing without a full ScionService
+ * <p>PackageVisibilityHelper.java — added openSnapChannel(SnapTunnel) to construct a SNAP-mode
+ * ScionDatagramChannel from a session directly, for testing without a full ScionService
  *
  * <p>SnapScionDatagramChannelTest.java (new) — connect_handshakeSucceeds(): starts the mock,
- * creates a SnapTunnelSession pointing at its dataplane, wraps it in a SNAP-mode
- * ScionDatagramChannel, calls ensureConnected(), and asserts localTunnelAddress() != null (proving
- * the WireGuard handshake completed end-to-end)
+ * creates a SnapTunnel pointing at its dataplane, wraps it in a SNAP-mode ScionDatagramChannel,
+ * calls ensureConnected(), and asserts localTunnelAddress() != null (proving the WireGuard
+ * handshake completed end-to-end)
  *
  * <p>MockNetwork2.java (fixed two bugs): the start() factory was missing the new useSnap argument
  * to the constructor; close() was not shutting down the snap service or clearing the SNAP system
@@ -77,9 +74,9 @@ class SnapScionDatagramChannelTest {
   @Test
   void connect_handshakeSucceeds() throws IOException {
     // Create a tunnel session pointing at the mock SNAP dataplane.
-    // SnapTunnelSession opens its own internal UDP channel; the first argument is unused.
-    SnapTunnelSession session =
-        new SnapTunnelSession(
+    // SnapTunnel opens its own internal UDP channel; the first argument is unused.
+    SnapTunnel session =
+        new SnapTunnel(
             null,
             mockSnapService.getDataplaneAddress(),
             mockSnapService.getStaticPublicKey(),
@@ -115,8 +112,8 @@ class SnapScionDatagramChannelTest {
         SnapControlClient controlClient = new SnapControlClient(snapService.getControlUrl());
         SnapDataplaneDetails dataPlane = controlClient.getDataPlaneAddress();
 
-        SnapTunnelSession session =
-            new SnapTunnelSession(
+        SnapTunnel session =
+            new SnapTunnel(
                 null, dataPlane.getAddress(), dataPlane.getSnapStaticX25519(), controlClient);
 
         session.ensureConnected();
@@ -129,8 +126,8 @@ class SnapScionDatagramChannelTest {
 
   @Test
   void send_installsSnapAssignedSourceAddress() throws IOException {
-    SnapTunnelSession session =
-        new SnapTunnelSession(
+    SnapTunnel session =
+        new SnapTunnel(
             null,
             mockSnapService.getDataplaneAddress(),
             mockSnapService.getStaticPublicKey(),

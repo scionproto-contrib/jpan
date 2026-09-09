@@ -25,7 +25,6 @@ import java.nio.channels.NotYetConnectedException;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.snap.SnapUnderlay;
-import org.scion.jpan.internal.snap.SnapUnderlaySupport;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
@@ -57,9 +56,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         channel,
         connectSelector,
         factory,
-        service == null
-            ? null
-            : SnapUnderlaySupport.createFor(service.getSnapDataPlane(), channel));
+        service == null ? null : SnapUnderlay.createFor(service.getSnapDataPlane(), channel));
   }
 
   ScionDatagramChannel(
@@ -368,7 +365,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
       }
 
       if (channel == null) {
-        channel = SnapUnderlaySupport.openChannelFor(service);
+        channel = SnapUnderlay.openChannelFor(service);
       }
 
       if (selector == null && service != null) {

@@ -288,7 +288,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void close() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
-      // Usually snapUnderlay's real transport channel *is* `channel` (see SnapUnderlaySupport),
+      // Usually snapUnderlay's real transport channel *is* `channel`,
       // in which case snapUnderlay.close() below already closes it -- disconnecting/closing it
       // again afterward would operate on an already-closed channel. Only skip that when they are
       // actually the same object; a caller-supplied SnapUnderlay wrapping an unrelated session

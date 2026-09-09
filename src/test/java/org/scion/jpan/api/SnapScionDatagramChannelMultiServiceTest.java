@@ -31,7 +31,7 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.testutil.MockSnapService;
 
 /**
@@ -40,7 +40,7 @@ import org.scion.jpan.testutil.MockSnapService;
  * used concurrently from two separate {@link ScionDatagramChannel}s in the same process. This
  * guards against per-tunnel state (crypto session, assigned tunnel address, transport channel)
  * accidentally leaking across independent SNAP channels, since {@code SnapUnderlay}/{@code
- * SnapTunnelSession} state is meant to be per-instance rather than global/static.
+ * SnapTunnel} state is meant to be per-instance rather than global/static.
  */
 class SnapScionDatagramChannelMultiServiceTest {
 
@@ -69,12 +69,10 @@ class SnapScionDatagramChannelMultiServiceTest {
     assertNotEquals(serviceA.getDataplaneAddress(), serviceB.getDataplaneAddress());
     assertFalse(Arrays.equals(serviceA.getStaticPublicKey(), serviceB.getStaticPublicKey()));
 
-    SnapTunnelSession sessionA =
-        new SnapTunnelSession(
-            null, serviceA.getDataplaneAddress(), serviceA.getStaticPublicKey(), null);
-    SnapTunnelSession sessionB =
-        new SnapTunnelSession(
-            null, serviceB.getDataplaneAddress(), serviceB.getStaticPublicKey(), null);
+    SnapTunnel sessionA =
+        new SnapTunnel(null, serviceA.getDataplaneAddress(), serviceA.getStaticPublicKey(), null);
+    SnapTunnel sessionB =
+        new SnapTunnel(null, serviceB.getDataplaneAddress(), serviceB.getStaticPublicKey(), null);
 
     try (ScionDatagramChannel channelA = PackageVisibilityHelper.openSnapChannel(sessionA);
         ScionDatagramChannel channelB = PackageVisibilityHelper.openSnapChannel(sessionB)) {

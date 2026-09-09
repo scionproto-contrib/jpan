@@ -29,7 +29,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
-import org.scion.jpan.internal.snap.SnapUnderlaySupport;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.selectors.PathSelectorNull;
 import org.slf4j.Logger;
@@ -214,12 +214,12 @@ public class ScmpSenderAsync implements AutoCloseable {
           channel,
           PathSelectorNull.instance(),
           PathSelectorNull.Factory.instance(),
-          SnapUnderlaySupport.createFor(service.getSnapDataPlane(), channel));
+          SnapUnderlay.createFor(service.getSnapDataPlane(), channel));
 
       try {
         // selector
         // Note: in SNAP mode, `channel` here is the same real channel SnapUnderlay uses for
-        // I/O (see SnapUnderlaySupport.createFor()), so registering it is correct either way.
+        // I/O (see SnapUnderlay.createFor()), so registering it is correct either way.
         this.selector = channel.provider().openSelector();
         super.channel().configureBlocking(false);
         super.channel().register(this.selector, SelectionKey.OP_READ);
@@ -475,7 +475,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel = channel == null ? SnapUnderlaySupport.openChannelFor(service) : channel;
+        channel = channel == null ? SnapUnderlay.openChannelFor(service) : channel;
         return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);

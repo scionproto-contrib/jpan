@@ -13,29 +13,23 @@ their own.
 - `AbstractScionChannel` holds a nullable `snapUnderlay` field (`org.scion.jpan.internal.snap
   .SnapUnderlay`). `sendUnderlay()`/`receiveUnderlay()`/`close()` dispatch on
   `snapUnderlay != null`; when null, they fall through to the plain `DatagramChannel`.
-- `SnapUnderlay` wraps a `SnapTunnelSession` and exposes only `send`/`receive`/`close`/
+- `SnapUnderlay` wraps a `SnapTunnel` and exposes only `send`/`receive`/`close`/
   `transportChannel()`/`ensureConnectedSourceAddress()` -- raw send/receive always goes through the
   session's `sendPacket()`/`receivePacket()`, so encryption can't be bypassed by accident.
-- `SnapTunnelSession` owns the real, OS-backed transport `DatagramChannel`, performs the
+- `SnapTunnel` owns the real, OS-backed transport `DatagramChannel`, performs the
   Noise/WireGuard-style handshake (hand-rolled on Bouncy Castle X25519/ChaCha20Poly1305/Blake2s
   primitives), and tracks the server-assigned local tunnel address.
-- `SnapUnderlaySupport` (public, in `org.scion.jpan.internal.snap`, alongside `SnapUnderlay`/
-  `SnapTunnelSession`/`SnapControlClient`) builds a `SnapUnderlay` from already-resolved values --
-  a `SnapDataplaneDetails` and a `DatagramChannel` -- rather than from a `ScionService` directly.
-  Callers in `org.scion.jpan` (`ScionDatagramChannel`, `ScmpSenderAsync`) fetch
-  `service.getSnapDataPlane()` themselves and pass the result in, so `SnapUnderlaySupport` never
-  needs cross-package access to any of `ScionService`'s package-private members.
 
 ### Socket reuse and binding
 
 - `ScionDatagramChannel.Builder.open()` and `ScmpSenderAsync.Builder.build()` both open their outer
-  `DatagramChannel` via `SnapUnderlaySupport.openChannelFor(service)`, which forces
+  `DatagramChannel` via `SnapUnderlay.openChannelFor(service)`, which forces
   `StandardProtocolFamily.INET` when SNAP is active -- the dataplane is IPv4-only, but a
   family-less `DatagramChannel.open()` can non-deterministically come back IPv6/dual-stack and
   silently break the handshake.
 - That same outer channel is reused as SNAP's real transport
-  (`SnapUnderlaySupport.createFor(service.getSnapDataPlane(), channel)`, always -- one socket per
-  channel, not two). `SnapTunnelSession` adopts an externally-provided channel without binding it;
+  (`SnapUnderlay.createFor(service.getSnapDataPlane(), channel)`, always -- one socket per
+  channel, not two). `SnapTunnel` adopts an externally-provided channel without binding it;
   binding stays entirely the caller's job via the normal `ensureBound()` path.
 - SNAP channels bind exactly like any other channel: the SCION dispatcher port range or an explicit
   `--port` is honored unconditionally, with no SNAP special-casing. This is deliberate: a
@@ -63,7 +57,7 @@ factory that resolves the control endpoint itself -- an explicit `org.scion.snap
 override, else the first entry of `localAS.getSnapControlNodes()`), then
 `SnapControlClient.getDataPlaneAddress()` to fetch the dataplane's UDP address and WireGuard
 static key. The result (a `SnapDataplaneDetails`, held as `ScionService.snapDataplaneDetails`) is
-what every channel built from that service uses to construct its `SnapTunnelSession`.
+what every channel built from that service uses to construct its `SnapTunnel`.
 
 `LocalAS.getBorderRouterAddress(interfaceId)` is a plain, strict border-router lookup: it throws if
 the interface ID isn't found. `LocalAS` carries no SNAP-specific state at all -- it is purely
@@ -73,7 +67,7 @@ resolved where it's actually used instead: `RequestPath.create(metadata, dstIP, 
 calls `getBorderRouterAddress()` when `localAS.getBorderRouters()` is non-empty, and simply leaves
 the first hop `null` otherwise (a SNAP-only tenant AS with no native border routers) -- no
 SNAP-specific fallback needed on `LocalAS` at all. A SNAP channel's actual first hop for sending
-traffic never comes from this path anyway; it comes from its own `SnapTunnelSession`, resolved
+traffic never comes from this path anyway; it comes from its own `SnapTunnel`, resolved
 independently once the handshake completes.
 
 ## Known limitations
@@ -83,7 +77,7 @@ independently once the handshake completes.
   ever needed.
 - **Tunnel-construction logic is duplicated**: `ScionDatagramChannel.Builder.open()` and
   `ScmpSenderAsync.Builder.build()` each independently call
-  `SnapUnderlaySupport.openChannelFor()`/`createFor()`, rather than sharing one call site.
+  `SnapUnderlay.openChannelFor()`/`createFor()`, rather than sharing one call site.
 - **Only one SNAP dataplane per `ScionService`** -- the more fundamental gap, detailed below.
 
 ### Multiple SNAP nodes per AS are not supported

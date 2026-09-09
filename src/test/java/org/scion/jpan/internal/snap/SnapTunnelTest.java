@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.testutil.MockSnapService;
 
-class SnapTunnelSessionTest {
+class SnapTunnelTest {
 
   private MockSnapService mockSnapService;
 
@@ -38,8 +38,8 @@ class SnapTunnelSessionTest {
 
   @Test
   void sendPacket_returnsScionByteCount_notWireGuardWireSize() throws IOException {
-    SnapTunnelSession session =
-        new SnapTunnelSession(
+    SnapTunnel session =
+        new SnapTunnel(
             null,
             mockSnapService.getDataplaneAddress(),
             mockSnapService.getStaticPublicKey(),
@@ -59,8 +59,8 @@ class SnapTunnelSessionTest {
 
   @Test
   void sendPacket_zeroLengthPacket_returnsZero() throws IOException {
-    SnapTunnelSession session =
-        new SnapTunnelSession(
+    SnapTunnel session =
+        new SnapTunnel(
             null,
             mockSnapService.getDataplaneAddress(),
             mockSnapService.getStaticPublicKey(),

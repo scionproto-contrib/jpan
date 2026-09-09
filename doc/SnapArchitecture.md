@@ -3,7 +3,7 @@
 SNAP tunnels SCION traffic through Anapaya's managed network. Reaching it involves up to four
 distinct HTTP-over-protobuf services plus the SNAP dataplane itself. This doc maps out what each
 one does, who talks to it in JPAN, and how they fit together. For the client-side channel/session
-internals *after* the dataplane connection exists (the `SnapUnderlay`/`SnapTunnelSession`
+internals *after* the dataplane connection exists (the `SnapUnderlay`/`SnapTunnel`
 machinery), see `SnapChannelAbstraction.md`.
 
 ## Services involved
@@ -54,8 +54,8 @@ service -- a raw UDP protocol.
 - Handshake: a hand-rolled Noise/WireGuard-variant handshake (X25519 + ChaCha20Poly1305 +
   Blake2s), performed once per channel session. The server assigns a tunnel source address as
   part of the handshake response.
-- JPAN: `SnapTunnelSession` (handshake + encrypt/decrypt), wrapped by `SnapUnderlay`, wired into
-  channels via `SnapUnderlaySupport` and `AbstractScionChannel.snapUnderlay`.
+- JPAN: `SnapTunnel` (handshake + encrypt/decrypt), wrapped by `SnapUnderlay`, wired into
+  channels via `AbstractScionChannel.snapUnderlay`.
 - After the handshake, every SCION packet the channel sends is wrapped in an encrypted WireGuard
   packet addressed to this endpoint; the dataplane decapsulates it and forwards it into the real
   SCION network (and vice versa for replies).

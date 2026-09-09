@@ -36,7 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.testutil.*;
 
 class ScionTest {
@@ -401,8 +401,8 @@ class ScionTest {
       ScionService service = Scion.defaultService();
       Path path = service.getPaths(dstIA, dstAddress).get(0);
 
-      SnapTunnelSession session =
-          new SnapTunnelSession(
+      SnapTunnel session =
+          new SnapTunnel(
               null,
               mockSnapService.getDataplaneAddress(),
               mockSnapService.getStaticPublicKey(),

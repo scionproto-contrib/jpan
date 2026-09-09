@@ -34,14 +34,14 @@ import org.bouncycastle.crypto.params.AEADParameters;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters;
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.proto.snap.ControlService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * Mock SNAP service providing both the WireGuard-based UDP dataplane and the HTTP control API used
- * by {@link org.scion.jpan.internal.snap.SnapTunnelSession} and {@link
- * org.scion.jpan.internal.snap.SnapControlClient}.
+ * by {@link SnapTunnel} and {@link org.scion.jpan.internal.snap.SnapControlClient}.
  */
 public class MockSnapService implements AutoCloseable {
 
@@ -58,7 +58,7 @@ public class MockSnapService implements AutoCloseable {
 
   private static final int TYPE_HANDSHAKE_RESPONSE = 2;
 
-  // These must be identical to the constants in SnapTunnelSession.
+  // These must be identical to the constants in SnapTunnel.
   private static final byte[] INITIAL_CHAIN_KEY = {
     96,
     (byte) 226,
@@ -274,7 +274,7 @@ public class MockSnapService implements AutoCloseable {
       hash = b2sHash(hash, erPub); // H5
 
       // Build the responder's side of the noise handshake (mirrors the initiator's response
-      // processing in SnapTunnelSession.ensureConnected).
+      // processing in SnapTunnel.ensureConnected).
       temp = b2sHmac(ck, erPub); // HMAC(CK3, e_r_pub) — raw bytes, SNAP variant
       ck = b2sHmac(temp, new byte[] {0x01}); // CK4
       temp = b2sHmac(ck, dh(erPriv, eiPubKey)); // HMAC(CK4, DH(e_r, e_i))
@@ -455,7 +455,7 @@ public class MockSnapService implements AutoCloseable {
   }
 
   // -------------------------------------------------------------------------
-  // Crypto helpers (mirrors private methods in SnapTunnelSession)
+  // Crypto helpers (mirrors private methods in SnapTunnel)
   // -------------------------------------------------------------------------
 
   private static byte[] dh(

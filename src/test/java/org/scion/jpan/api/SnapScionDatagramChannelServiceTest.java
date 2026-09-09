@@ -27,18 +27,18 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockDNS;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockSnapService;
 
 /**
- * Covers {@link PackageVisibilityHelper#openSnapChannel(ScionService, SnapTunnelSession)} with a
- * real, non-null {@link ScionService} -- as opposed to {@link SnapScionDatagramChannelTest}, which
- * only ever uses the null-service overload. A non-null service is what lets the channel resolve a
- * plain destination address into a path via {@code send(ByteBuffer, SocketAddress)}, instead of
- * requiring an already-resolved {@code Path}.
+ * Covers {@link PackageVisibilityHelper#openSnapChannel(ScionService, SnapTunnel)} with a real,
+ * non-null {@link ScionService} -- as opposed to {@link SnapScionDatagramChannelTest}, which only
+ * ever uses the null-service overload. A non-null service is what lets the channel resolve a plain
+ * destination address into a path via {@code send(ByteBuffer, SocketAddress)}, instead of requiring
+ * an already-resolved {@code Path}.
  */
 class SnapScionDatagramChannelServiceTest {
 
@@ -67,8 +67,8 @@ class SnapScionDatagramChannelServiceTest {
     ScionService service = Scion.defaultService();
     assertNotNull(service);
 
-    SnapTunnelSession session =
-        new SnapTunnelSession(
+    SnapTunnel session =
+        new SnapTunnel(
             null,
             mockSnapService.getDataplaneAddress(),
             mockSnapService.getStaticPublicKey(),

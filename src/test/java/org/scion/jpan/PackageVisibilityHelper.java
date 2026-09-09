@@ -25,7 +25,7 @@ import java.util.List;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
-import org.scion.jpan.internal.snap.SnapTunnelSession;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
@@ -209,29 +209,28 @@ public class PackageVisibilityHelper {
   }
 
   /**
-   * Creates a {@link ScionDatagramChannel} in SNAP mode, backed by the given {@link
-   * SnapTunnelSession}, for unit-testing SNAP channel behavior without a real {@link ScionService}.
-   * The channel has no path selector/factory (both null), since neither is needed unless the caller
-   * sends via address-based resolution (as opposed to an explicit {@link Path}) -- an earlier
-   * version of this helper built a selector via {@link Scion#defaultService()}, which depends on
-   * live DNS/daemon resolution and made every test using it flaky/environment-dependent for no
-   * reason.
+   * Creates a {@link ScionDatagramChannel} in SNAP mode, backed by the given {@link SnapTunnel},
+   * for unit-testing SNAP channel behavior without a real {@link ScionService}. The channel has no
+   * path selector/factory (both null), since neither is needed unless the caller sends via
+   * address-based resolution (as opposed to an explicit {@link Path}) -- an earlier version of this
+   * helper built a selector via {@link Scion#defaultService()}, which depends on live DNS/daemon
+   * resolution and made every test using it flaky/environment-dependent for no reason.
    */
-  public static ScionDatagramChannel openSnapChannel(SnapTunnelSession session) throws IOException {
-    return openSnapChannel(null, session);
+  public static ScionDatagramChannel openSnapChannel(SnapTunnel tunnel) throws IOException {
+    return openSnapChannel(null, tunnel);
   }
 
   /**
-   * Like {@link #openSnapChannel(SnapTunnelSession)}, but attaches the given {@link ScionService}
-   * (a real path selector/factory is only built when {@code service} is non-null). Needed for tests
-   * that exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}), which
+   * Like {@link #openSnapChannel(SnapTunnel)}, but attaches the given {@link ScionService} (a real
+   * path selector/factory is only built when {@code service} is non-null). Needed for tests that
+   * exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}), which
    * requires a real selector. Pass {@code null} for the same lightweight, DNS/daemon-independent
    * behavior as the single-argument overload.
    */
-  public static ScionDatagramChannel openSnapChannel(
-      ScionService service, SnapTunnelSession session) throws IOException {
+  public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnel tunnel)
+      throws IOException {
     DatagramChannel udp = DatagramChannel.open();
-    SnapUnderlay snapUnderlay = SnapUnderlay.wrap(session);
+    SnapUnderlay snapUnderlay = SnapUnderlay.wrap(tunnel);
     if (service == null) {
       return new ScionDatagramChannel(null, udp, null, null, snapUnderlay);
     }

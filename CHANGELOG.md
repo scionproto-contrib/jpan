@@ -10,10 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
-- Move FirstHopAddress out of metadata (clean up PathBuilder) and into Path.
-- Rename getFirstHop() to getBorderRouterAddress()
+- Support Netty?!?
 - Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
-- Use InetSocketAddress for FirstHop in MetaData?
 - Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
 - Use Builder for LocalAS?
 - Create Builder for ScionService or add SNP props to Channel.Builder???
@@ -178,10 +176,7 @@ TODO
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 ### TODO
-- Remove SnapUnderlaySupport.
-- Double check, why do we need a snapservice in ScionService?
 - MultiSnap support? Document? Builder?
-- SnapTunnelSession: constructor has unused argument, shouldn't we use it?
 - Remove/check log.debug() messages
 - Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
 
