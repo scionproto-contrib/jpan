@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- Performance TODO: When connected: buffer complete SCION header i.o. building it
+  every time. Add cached header to "Path" for send()?
+- Support Netty?!?
+- Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
+- Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
+- Use Builder for LocalAS?
+- Create Builder for ScionService or add SNP props to Channel.Builder???
+- Fix flaky MacOS build
+  [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
+- Report flaky discovery SNAP
+- Check: SNAP ports are blocked if session has ended?
+
 - After release: update exercise for PathSelector
 
 - Later: ScionService API:
@@ -163,6 +175,13 @@ TODO
 
 ## 0.8.0 - WIP
 
+- SNAP support
+  [#271](https://github.com/scionproto-contrib/jpan/pull/271)
+### TODO
+- MultiSnap support? Document? Builder?
+- Remove/check log.debug() messages
+- Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
+- Ensure we don't use NAT when using SNAP. (think properly!)
 ### Added
 
 - PathSelector API.

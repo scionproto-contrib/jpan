@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketOption;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.*;
@@ -30,10 +29,14 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathHeaderParser;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.selectors.PathSelectorNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ScmpSenderAsync implements AutoCloseable {
+  private static final Logger log = LoggerFactory.getLogger(ScmpSenderAsync.class);
   private int timeOutMs = 1000;
   private final InternalChannel channel;
   private final AtomicInteger sequenceIDs = new AtomicInteger(0);
@@ -206,10 +209,17 @@ public class ScmpSenderAsync implements AutoCloseable {
         ScionService service, Integer port, java.nio.channels.DatagramChannel channel) {
       // We provide the no-op PathSelector. SCMP channels are never connected, so the
       // PathSelector will never be used.
-      super(service, channel, PathSelectorNull.instance(), PathSelectorNull.Factory.instance());
+      super(
+          service,
+          channel,
+          PathSelectorNull.instance(),
+          PathSelectorNull.Factory.instance(),
+          SnapUnderlay.createFor(service.getSnapDataPlane(), channel));
 
       try {
         // selector
+        // Note: in SNAP mode, `channel` here is the same real channel SnapUnderlay uses for
+        // I/O (see SnapUnderlay.createFor()), so registering it is correct either way.
         this.selector = channel.provider().openSelector();
         super.channel().configureBlocking(false);
         super.channel().register(this.selector, SelectionKey.OP_READ);
@@ -263,6 +273,14 @@ public class ScmpSenderAsync implements AutoCloseable {
         int posPath = ScionHeaderParser.extractPathHeaderPosition(buffer);
         buffer.put(posPath + node.posHopFlags, node.hopFlags);
 
+        log.debug(
+            "SCMP send traceroute: seqNo={} srcPort={} posHopFlags={} hopFlags=0x{} override={}",
+            interfaceNumber,
+            srcPort.get(),
+            node.posHopFlags,
+            Integer.toHexString(node.hopFlags & 0xff),
+            getOverrideSourceAddress());
+
         sendRequest(request, buffer, path);
       } finally {
         writeLock().unlock();
@@ -280,28 +298,38 @@ public class ScmpSenderAsync implements AutoCloseable {
     }
 
     private void receiveAsync() throws IOException {
+      // Whether this reads the plain-UDP outer channel or the SNAP tunnel's real transport
+      // channel is decided by which one was registered with `selector` in the constructor;
+      // readIncomingScmp()/receiveUnderlay() below dispatch on `snapTunnel == null` either way.
       while (selector.isOpen() && selector.select() > 0) {
         Iterator<SelectionKey> iter = selector.selectedKeys().iterator();
-        if (iter.hasNext()) {
+        while (iter.hasNext()) {
           SelectionKey key = iter.next();
           iter.remove();
           if (key.isValid() && key.isReadable()) {
-            readIncomingScmp(key);
+            readIncomingScmp();
           }
         }
       }
     }
 
-    private void readIncomingScmp(SelectionKey key) throws IOException {
+    private void readIncomingScmp() throws IOException {
       readLock().lock();
       try {
-        DatagramChannel incoming = (DatagramChannel) key.channel();
         ByteBuffer buffer = super.getBufferReceive(DEFAULT_BUFFER_SIZE);
         buffer.clear();
-        InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+        InetSocketAddress srcAddress = receiveUnderlay(buffer);
+        if (srcAddress == null) {
+          return;
+        }
         buffer.flip();
         if (validate(buffer)) {
           HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
+          log.debug(
+              "SCMP receive: {} bytes from {}, nextHeader={}",
+              buffer.remaining(),
+              srcAddress,
+              hdrType);
           ResponsePath receivePath = ScionHeaderParser.extractResponsePath(buffer, srcAddress);
           // From here on we use linear reading using the buffer's position() mechanism
           buffer.position(ScionHeaderParser.extractHeaderLength(buffer));
@@ -311,9 +339,12 @@ public class ScmpSenderAsync implements AutoCloseable {
           hdrType = receiveExtensionHeader(buffer, hdrType);
 
           if (hdrType != HeaderConstants.HdrTypes.SCMP) {
+            log.debug("SCMP receive: dropping non-SCMP packet (hdrType={})", hdrType);
             return; // drop
           }
           handleIncomingScmp(buffer, receivePath);
+        } else {
+          log.debug("SCMP receive: validation failed, dropping {} bytes", buffer.remaining());
         }
       } catch (ScionException e) {
         // Validation problem -> ignore
@@ -328,6 +359,7 @@ public class ScmpSenderAsync implements AutoCloseable {
       long currentNanos = System.nanoTime();
       int bufferStart = buffer.position();
       Scmp.Message msg = ScmpParser.consume(buffer, receivePath);
+      log.debug("SCMP handleIncoming: typeCode={}", msg.getTypeCode());
       if (msg.getTypeCode().isError()) {
         handler.onError((Scmp.ErrorMessage) msg);
         // Async send/receive handles error via error handler
@@ -342,6 +374,11 @@ public class ScmpSenderAsync implements AutoCloseable {
       Scmp.TimedMessage timedMsg = (Scmp.TimedMessage) msg;
 
       TimeOutTask task = timers.remove(timedMsg.getSequenceNumber());
+      log.debug(
+          "SCMP handleIncoming: seqNo={} pendingTimers={} taskFound={}",
+          timedMsg.getSequenceNumber(),
+          timers.size(),
+          task != null);
       if (task != null) {
         task.cancel(); // Cancel timeout timer
         Scmp.TimedMessage request = task.request;
@@ -438,7 +475,7 @@ public class ScmpSenderAsync implements AutoCloseable {
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
       try {
-        channel = channel == null ? java.nio.channels.DatagramChannel.open() : channel;
+        channel = channel == null ? SnapUnderlay.openChannelFor(service) : channel;
         return new ScmpSenderAsync(service, port, handler, channel);
       } catch (IOException e) {
         throw new ScionRuntimeException(e);

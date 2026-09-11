@@ -403,6 +403,51 @@ assuming that another SHIM is running on 30041.
  
 Whether a SHIM is started can be controlled with a configuration option, see below.
 
+### Snap -- WARNING, support is EXPERIMENTAL, API is not stable!
+
+JPAN has experimental support for Anapaya's SNAP (Scion Network Access Point) technology.
+With SNAP, an endpoint sends traffic not directly to the border routers but via a wireguard(-like)
+tunnel to a SNAP server that forwards the traffic to the border routers. Return traffic is sent 
+from the border routers directly to the endhosts.
+
+SNAP has several advantages: It works also if the endhost is behind a NAT (without requiring STUN
+or similar). Since it requires authentication, it is better protected and SNAP node can easily be 
+made available to the public outside the local AS. This allows endhosts to use SCION even if their
+local ISP does not offer it.
+
+The SNAP service requires a token for connection. The token can be provided via property/environment
+variable or it can be obtained from an authentication server with an API key.
+The SNAP control plane (not to be confused with the SCION control plane / endhost API) 
+can be set with `org.scion.snap.controlPlane` / `SCION_SNAP_CONTROL_PLANE`, otherwise it is derived
+from the local AS's topology (endhost API).
+The address of the SNAP data plane service (and its WireGuard key) is then obtained from the
+SNAP control plane endpoint.
+
+Snap can be enabled in several ways:
+- It will be used if the setting specify a SNAP discovery/authentication service.
+  If a service is defined but no SNAP service address is available, the application will error out.
+- If an authentication token is specified, SNAP will be used if the new endhost API is used and
+  if it reports a SNAP underlay.
+
+So, to activate SNAP, do one of the following:
+- Specify a SNAP authentication service (e.g. `auth.scion.anapaya.net`) and an access token for the service.
+  Alternatively directly specify the SNAP authentication token.
+- If a SNAP control plane service is specified, it will try to use it, otherwise it will 
+  try to use any SNAP control plane service provided by the authentication service
+  or by the SCION endhost API.
+- Specify an endhost API with `org.scion.bootstrap.pathservice` / `SCION_BOOTSTRAP_PATH_SERVICE`
+  or an endhost discovery service with `org.scion.snap.psDiscovery` / `SCION_SNAP_PS_DISCOVERY`,
+  for example: `https://discovery.scion.anapaya.net`.
+
+| Option                                    | Java property                 | Environment variable       | Default value |
+|-------------------------------------------|-------------------------------|----------------------------|---------------|
+| Preferred underlay: auto, udp or snap     | `org.scion.underlay.mode`     | `SCION_UNDERLAY_MODE`      | `udp`         |
+| SNAP authentication key (API key)         | `org.scion.snap.auth.key`     | `SCION_SNAP_AUTH_KEY`      |               | 
+| SNAP authentication service (address/url) | `org.scion.snap.auth.service` | `SCION_SNAP_AUTH_SERVICE`  |               | 
+| SNAP control plane endpoint (host:port)   | `org.scion.snap.controlPlane` | `SCION_SNAP_CONTROL_PLANE` |               | 
+| SNAP authentication token (dataplane)     | `org.scion.snap.authToken`    | `SCION_SNAP_AUTH_TOKEN`    |               | 
+| SNAP endhost API discovery endpoint       | `org.scion.snap.psDiscovery`  | `SCION_SNAP_PS_DISCOVERY`  |               |
+
 ### Other Options
 
 | Option                                                                                                               | Java property                       | Environment variable              | Default value      |
@@ -412,6 +457,12 @@ Whether a SHIM is started can be controlled with a configuration option, see bel
 | Path expiry margin. Before sending a packet a new path is requested if the path is about to expire within X seconds. | `org.scion.pathExpiryMargin`        | `SCION_PATH_EXPIRY_MARGIN`        | `10`               |
 | Path polling interval. Interval at which a client may poll for new paths for connected channels or sockets.          | `org.scion.pathPollIntervalSec`     | `SCION_PATH_POLL_INTERVAL_SEC`    | `60`               |
 | Start SHIM. If not set, SHIM will be started unless the dispatcher port range is set to `all`.                       | `org.scion.shim`                    | `SCION_SHIM`                      |                    |
+
+### SNAP Troubleshooting
+
+One source of confusion can be that the SNAP service does not allow the same IP:port 
+of the source machine to be (easily) used by different connections. It blocks IP;port
+combination for several minutes before allowing connection from the same IP:port again.
 
 ## FAQ / Troubleshooting
 

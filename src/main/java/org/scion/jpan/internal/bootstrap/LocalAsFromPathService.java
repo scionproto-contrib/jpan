@@ -15,10 +15,7 @@
 package org.scion.jpan.internal.bootstrap;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -26,6 +23,8 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.util.Config;
+import org.scion.jpan.internal.util.HttpEndpoint;
 import org.scion.jpan.proto.endhost.Underlays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,9 +39,33 @@ public class LocalAsFromPathService {
   public static LocalAS create(String pathService, TrcStore trcStore) {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
     Underlays.ListUnderlaysResponse u = query(snList, pathService);
+    List<LocalAS.SnapControlNode> snapControlNodeList = getSnapControlNodes(u);
+
+    if (Config.isUnderlaySnapAllowed()) {
+      // Note that the SNAP AS may be different from the expected local AS of a local ISP.
+      Set<Long> snapIsdAses = getLocalIsdAsFromSnap(u);
+      if (!snapIsdAses.isEmpty()) {
+        List<LocalAS.BorderRouter> brList =
+            u.hasUdp() ? getBorderRouterList(u) : Collections.emptyList();
+        return new LocalAS(
+            snapIsdAses,
+            false,
+            1200,
+            LocalAS.DispatcherPortRange.createAll(),
+            snList,
+            Collections.emptyList(),
+            brList,
+            snapControlNodeList,
+            trcStore);
+      }
+      if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
+        LOG.warn("SNAP underlay preferred but endhost API advertised no usable SNAP entry");
+      }
+    }
+
     if (!u.hasUdp() || u.getUdp().getRoutersList().isEmpty()) {
-      LOG.warn("No underlay available");
-      return new LocalAS(Collections.emptySet(), false, 1200, null, null, null, null, trcStore);
+      throw new ScionRuntimeException(
+          "No usable underlay: endhost API returned no UDP routers and no usable SNAP entry");
     }
     Set<Long> isdAs =
         u.getUdp().getRoutersList().stream()
@@ -55,8 +78,9 @@ public class LocalAsFromPathService {
         1200, // TODO
         LocalAS.DispatcherPortRange.createAll(), // TODO
         snList,
-        null,
+        Collections.emptyList(),
         brList,
+        snapControlNodeList,
         trcStore);
   }
 
@@ -81,6 +105,38 @@ public class LocalAsFromPathService {
     return list;
   }
 
+  private static List<LocalAS.SnapControlNode> getSnapControlNodes(
+      Underlays.ListUnderlaysResponse u) {
+    if (!u.hasSnap()) {
+      LOG.debug("ListUnderlays response has no snap field");
+      return Collections.emptyList();
+    }
+    List<LocalAS.SnapControlNode> snaps = new ArrayList<>();
+    for (Underlays.Snap snap : u.getSnap().getSnapsList()) {
+      LOG.debug(
+          "ListUnderlays snap node: address={} isd_ases={}",
+          snap.getAddress(),
+          snap.getIsdAsesList());
+      snaps.add(
+          new LocalAS.SnapControlNode(snap.getAddress(), new ArrayList<>(snap.getIsdAsesList())));
+    }
+    if (snaps.isEmpty()) {
+      LOG.debug("ListUnderlays snap field present but snap list is empty");
+    }
+    return snaps;
+  }
+
+  private static Set<Long> getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
+    if (!u.hasSnap() || u.getSnap().getSnapsCount() == 0) {
+      return Collections.emptySet();
+    }
+    Underlays.Snap snap = u.getSnap().getSnaps(0);
+    if (snap.getIsdAsesCount() == 0) {
+      return Collections.emptySet();
+    }
+    return new HashSet<>(snap.getIsdAsesList());
+  }
+
   private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {
     for (LocalAS.ServiceNode node : nodes) {
       try {
@@ -99,10 +155,17 @@ public class LocalAsFromPathService {
         Underlays.ListUnderlaysRequest.newBuilder().build();
     RequestBody requestBody = RequestBody.create(protoRequest.toByteArray());
 
-    Request request =
+    String baseUrl = HttpEndpoint.normalizeBaseUrl(apiAddress, "http");
+    Request.Builder requestBuilder =
         new Request.Builder()
-            .url("http://" + apiAddress + "/scion.endhost.v1.UnderlayService/ListUnderlays")
-            .addHeader("Content-type", "application/proto")
+            .url(baseUrl + "/scion.endhost.v1.UnderlayService/ListUnderlays")
+            .addHeader("Content-type", "application/proto");
+    String token = Config.getSnapAuthToken();
+    if (token != null && !token.isEmpty()) {
+      requestBuilder.addHeader("Authorization", "Bearer " + token);
+    }
+    Request request =
+        requestBuilder
             //            .addHeader("User-Agent", "OkHttp Bot")
             .post(requestBody)
             .build();

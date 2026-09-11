@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.AddressLookupService;
+import org.scion.jpan.internal.snap.SnapTunnel;
 import org.scion.jpan.testutil.*;
 
 class ScionTest {
@@ -377,6 +379,39 @@ class ScionTest {
       try (ScionDatagramChannel channel2 = ScionDatagramChannel.open()) {
         channel2.connect(path);
         assertEquals(31001, channel2.getLocalAddress().getPort());
+      }
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_snap() throws IOException {
+    // A SNAP-mode channel must be bound the same way as any other channel: SNAP is a real,
+    // addressable tunnel endpoint that other SCION hosts reach directly (see
+    // doc/SnapChannelAbstraction.md), not a NAT-style client that can move to a new port on every
+    // restart -- so it must honor the configured dispatcher port range too, not fall back to an
+    // ephemeral port.
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
+    MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+    System.setProperty(
+        Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/dispatcher-port-range.json");
+    try (MockSnapService mockSnapService = MockSnapService.start(MockSnapService.ADDRESS)) {
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+
+      SnapTunnel session =
+          new SnapTunnel(
+              null,
+              mockSnapService.getDataplaneAddress(),
+              mockSnapService.getStaticPublicKey(),
+              null /* no HTTP control client needed for handshake */);
+
+      try (ScionDatagramChannel channel =
+          PackageVisibilityHelper.openSnapChannel(service, session)) {
+        channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
+        assertEquals(31000, channel.getLocalAddress().getPort());
       }
     } finally {
       MockNetwork.stopTiny();

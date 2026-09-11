@@ -31,6 +31,7 @@ import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.PathRawParserLight;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.selectors.PathSelector;
@@ -60,22 +61,40 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private final PathSelector pathSelectorForConnect;
   private PathSelector pathSelectorForConnectPath;
   private final PathSelectorFactory pathSelectorFactory;
+  // Non-null if this channel routes underlay traffic through a SNAP tunnel. See sendUnderlay(),
+  // receiveUnderlay(), close() and ensureSnapSourceAddress() below.
+  private final SnapUnderlay snapUnderlay;
 
   protected AbstractScionChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
       PathSelector connectSelector,
       PathSelectorFactory pathSelectorFactory) {
+    this(service, channel, connectSelector, pathSelectorFactory, null);
+  }
+
+  protected AbstractScionChannel(
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory pathSelectorFactory,
+      SnapUnderlay snapUnderlay) {
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
     this.bufferSend = ByteBuffer.allocateDirect(2000);
     this.pathSelectorForConnect = connectSelector;
     this.pathSelectorFactory = pathSelectorFactory;
+    this.snapUnderlay = snapUnderlay;
   }
 
   protected void configureBlocking(boolean block) throws IOException {
     synchronized (stateLock) {
+      if (snapUnderlay != null) {
+        // SnapUnderlay's send/receive loops rely on the channel staying non-blocking; ignore
+        // requests to change it rather than silently break them.
+        return;
+      }
       channel.configureBlocking(block);
     }
   }
@@ -164,7 +183,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       channel.bind(address);
       localAddress = ((InetSocketAddress) channel.getLocalAddress()).getAddress();
-      if (service != null) {
+      // NatMapping's result is never consulted for a SNAP channel (ensureSnapSourceAddress()
+      // always installs an override first), and it would otherwise run STUN probes over the same
+      // socket SnapUnderlay uses for real traffic, racing with it for incoming packets.
+      if (service != null && snapUnderlay == null) {
         getNatMapping();
       }
       return (C) this;
@@ -180,7 +202,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   private void ensureNatMapping() {
-    if (service != null) {
+    if (service != null && snapUnderlay == null) {
       getNatMapping();
     }
   }
@@ -266,6 +288,15 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   public void close() throws IOException {
     synchronized (stateLock) {
       isConnected = false;
+      // Usually snapUnderlay's real transport channel *is* `channel`,
+      // in which case snapUnderlay.close() below already closes it -- disconnecting/closing it
+      // again afterward would operate on an already-closed channel. Only skip that when they are
+      // actually the same object; a caller-supplied SnapUnderlay wrapping an unrelated session
+      // (e.g. in tests) still needs `channel` closed separately.
+      boolean snapOwnsChannel = snapUnderlay != null && snapUnderlay.transportChannel() == channel;
+      if (snapUnderlay != null) {
+        snapUnderlay.close();
+      }
       if (natMapping != null) {
         natMapping.close();
       }
@@ -276,8 +307,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
         pathSelectorForConnectPath.close();
         pathSelectorForConnectPath = null;
       }
-      channel.disconnect();
-      channel.close();
+      if (!snapOwnsChannel) {
+        channel.disconnect();
+        channel.close();
+      }
     }
   }
 
@@ -344,12 +377,13 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       synchronized (stateLock) {
         checkConnected(false);
         ensureBound();
-        if (localAddress.isAnyLocalAddress()) {
+        if (localAddress.isAnyLocalAddress() && snapUnderlay == null) {
           // Do we really need this?
           // - It ensures that after connect we have a proper local address for getLocalAddress(),
           //   this is what connect() should do.
           // - It allows us to have an ANY address underneath which could help with interface
           //   switching.
+          // NatMapping is never consulted for a SNAP channel, see bind()'s comment.
           localAddress = getNatMapping().getExternalIP();
         }
         pathSelectorForConnect.open(destination);
@@ -391,12 +425,13 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       checkConnected(false);
       ensureBound();
-      if (localAddress.isAnyLocalAddress()) {
+      if (localAddress.isAnyLocalAddress() && snapUnderlay == null) {
         // Do we really need this?
         // - It ensures that after connect we have a proper local address for getLocalAddress(),
         //   this is what connect() should do.
         // - It allows us to have an ANY address underneath which could help with interface
         //   switching.
+        // NatMapping is never consulted for a SNAP channel, see bind()'s comment.
         localAddress = getNatMapping().getExternalIP();
       }
       pathSelectorForConnectPath = PathSelectorFixed.create(path);
@@ -441,7 +476,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     ensureNatMapping(); // This can be necessary after having called disconnect()
     while (true) {
       buffer.clear();
-      InetSocketAddress srcAddress = (InetSocketAddress) channel.receive(buffer);
+      InetSocketAddress srcAddress = receiveUnderlay(buffer);
       if (srcAddress == null) {
         // this indicates nothing is available - non-blocking mode
         return null;
@@ -579,12 +614,15 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     if (overrideExternalAddress != null) {
       return overrideExternalAddress;
     }
+    if (snapUnderlay != null) {
+      return snapUnderlay.ensureConnectedSourceAddress();
+    }
     return getNatMapping().getMappedAddress(path);
   }
 
   protected int sendRaw(ByteBuffer buffer, Path path) throws IOException {
     InetSocketAddress remoteHost = path.getFirstHopAddress();
-    if (getService() != null && path.getRawPath().length == 0) {
+    if (snapUnderlay == null && getService() != null && path.getRawPath().length == 0) {
       // For intra-AS traffic we need to send packets directly to the originating underlay address.
       // This is necessary to handle NAT.
       // Unfortunately this does not work if:
@@ -597,7 +635,39 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // (the remote host may be running a dispatcher).
       remoteHost = getService().getLocalPortRange().mapToLocalPort(remoteHost);
     }
+    return sendUnderlay(buffer, remoteHost);
+  }
+
+  protected InetSocketAddress receiveUnderlay(ByteBuffer buffer) throws IOException {
+    if (snapUnderlay != null) {
+      return snapUnderlay.receive(buffer);
+    }
+    return (InetSocketAddress) channel.receive(buffer);
+  }
+
+  protected int sendUnderlay(ByteBuffer buffer, InetSocketAddress remoteHost) throws IOException {
+    if (snapUnderlay != null) {
+      return snapUnderlay.send(buffer);
+    }
     return channel.send(buffer, remoteHost);
+  }
+
+  /**
+   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned address
+   * as the SCION source address. Without this, the source address would fall back to {@link
+   * org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and would report
+   * the local (pre-NAT) address of an underlay socket that isn't even used to send traffic. No-op
+   * if this channel is not in SNAP mode. Called from {@link #buildHeader} so that neither {@link
+   * ScionDatagramChannel} nor {@link ScmpSenderAsync} need to call it explicitly.
+   */
+  private void ensureSnapSourceAddress() {
+    if (snapUnderlay == null || getOverrideSourceAddress() != null) {
+      return;
+    }
+    InetSocketAddress assigned = snapUnderlay.ensureConnectedSourceAddress();
+    if (assigned != null) {
+      setOverrideSourceAddress(assigned);
+    }
   }
 
   /**
@@ -755,6 +825,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // This may be necessary for getSourceAddress(), but it is definitely necessary for
       // consistent API behavior that getLocalAddress() should return an address after send().
       ensureBound();
+      ensureSnapSourceAddress();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;

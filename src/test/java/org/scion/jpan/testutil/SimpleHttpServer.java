@@ -93,11 +93,14 @@ public abstract class SimpleHttpServer {
       String uri = parts[1];
 
       int contentLength = 0;
+      String authorization = null;
       String remoteAddress = socket.getInetAddress().getHostAddress();
       String line;
       while ((line = readLine(in)) != null && !line.isEmpty()) {
         if (line.toLowerCase().startsWith("content-length:")) {
           contentLength = Integer.parseInt(line.substring(15).trim());
+        } else if (line.toLowerCase().startsWith("authorization:")) {
+          authorization = line.substring("authorization:".length()).trim();
         }
       }
 
@@ -111,7 +114,7 @@ public abstract class SimpleHttpServer {
         offset += n;
       }
 
-      Session session = new Session(requestMethod, uri, remoteAddress, body);
+      Session session = new Session(requestMethod, uri, remoteAddress, body, authorization);
       Response response = serve(session);
 
       StringBuilder sb = new StringBuilder();
@@ -272,12 +275,19 @@ public abstract class SimpleHttpServer {
     private final String uri;
     private final String remoteAddress;
     private final byte[] body;
+    private final String authorization;
 
-    Session(RequestMethod requestMethod, String uri, String remoteAddress, byte[] body) {
+    Session(
+        RequestMethod requestMethod,
+        String uri,
+        String remoteAddress,
+        byte[] body,
+        String authorization) {
       this.requestMethod = requestMethod;
       this.uri = uri;
       this.remoteAddress = remoteAddress;
       this.body = body;
+      this.authorization = authorization;
     }
 
     public RequestMethod getMethod() {
@@ -294,6 +304,11 @@ public abstract class SimpleHttpServer {
 
     public InputStream getInputStream() {
       return new ByteArrayInputStream(body);
+    }
+
+    /** Returns the value of the {@code Authorization} request header, or {@code null} if absent. */
+    public String getAuthorization() {
+      return authorization;
     }
   }
 

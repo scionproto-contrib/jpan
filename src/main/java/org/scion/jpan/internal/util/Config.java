@@ -23,6 +23,12 @@ public class Config {
 
   private Config() {}
 
+  public enum UnderlayMode {
+    UDP,
+    SNAP,
+    AUTO
+  }
+
   public static int getControlPlaneTimeoutMs() {
     double milliSeconds =
         ScionUtil.getPropertyOrEnv(
@@ -34,6 +40,53 @@ public class Config {
 
   public static String getPathService() {
     return ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_PATH_SERVICE, ENV_BOOTSTRAP_PATH_SERVICE);
+  }
+
+  public static UnderlayMode getUnderlayMode() {
+    String m =
+        ScionUtil.getPropertyOrEnv(PROPERTY_UNDERLAY_MODE, ENV_UNDERLAY_MODE, DEFAULT_UNDERLAY_MODE)
+            .toLowerCase();
+    switch (m) {
+      case "udp":
+        return UnderlayMode.UDP;
+      case "snap":
+        return UnderlayMode.SNAP;
+      case "auto":
+        return UnderlayMode.AUTO;
+      default:
+        throw new UnsupportedOperationException(m);
+    }
+  }
+
+  public static boolean isUnderlaySnapAllowed() {
+    UnderlayMode mode = getUnderlayMode();
+    return UnderlayMode.SNAP.equals(mode) || UnderlayMode.AUTO.equals(mode);
+  }
+
+  public static boolean isUnderlayUdpAllowed() {
+    UnderlayMode mode = getUnderlayMode();
+    return UnderlayMode.UDP.equals(mode) || UnderlayMode.AUTO.equals(mode);
+  }
+
+  public static String getSnapControlPlaneAddress() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_CONTROL_PLANE, ENV_SNAP_CONTROL_PLANE);
+  }
+
+  public static String getSnapAuthToken() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_TOKEN, ENV_SNAP_AUTH_TOKEN);
+  }
+
+  public static String getSnapAuthKey() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_KEY, ENV_SNAP_AUTH_KEY);
+  }
+
+  public static String getSnapAuthenticationService() {
+    return ScionUtil.getPropertyOrEnv(PROPERTY_SNAP_AUTH_SERVICE, ENV_SNAP_AUTH_SERVICE);
+  }
+
+  public static String getSnapPathServiceDiscovery() {
+    return ScionUtil.getPropertyOrEnv(
+        PROPERTY_SNAP_PATH_SERVICE_DISCOVERY, ENV_SNAP_PATH_SERVICE_DISCOVERY);
   }
 
   public static String getNat() {
