@@ -57,6 +57,10 @@ public class MockSnapService implements AutoCloseable {
   private static final int TYPE_HANDSHAKE_INIT = 1;
 
   private static final int TYPE_HANDSHAKE_RESPONSE = 2;
+  private static final int TYPE_DATA = 4;
+
+  /** Plaintext payload echoed back (encrypted) for every data packet received after handshake. */
+  public static final byte[] ECHO_PAYLOAD = {'S', 'N', 'A', 'P', '-', 'E', 'C', 'H', 'O'};
 
   // These must be identical to the constants in SnapTunnel.
   private static final byte[] INITIAL_CHAIN_KEY = {
@@ -148,6 +152,12 @@ public class MockSnapService implements AutoCloseable {
   private Thread dataplaneThread;
   private SnapControlServer httpServer;
 
+  // Set once the handshake completes; used to send an encrypted data-packet echo back to the
+  // client. Only ever touched from the single dataplane thread, so no synchronization needed.
+  private byte[] serverSendKey;
+  private int clientIndex;
+  private long echoCounter;
+
   private MockSnapService(int httpPort, String expectedToken) throws IOException {
     SecureRandom rng = new SecureRandom();
     staticPrivate = new X25519PrivateKeyParameters(rng);
@@ -215,6 +225,12 @@ public class MockSnapService implements AutoCloseable {
             if (response != null) {
               dataplaneChannel.send(ByteBuffer.wrap(response), sender);
               log.debug("Sent SNAP handshake response to {}", sender);
+            }
+          } else if (type == TYPE_DATA && serverSendKey != null) {
+            byte[] reply = buildEchoReply();
+            if (reply != null) {
+              dataplaneChannel.send(ByteBuffer.wrap(reply), sender);
+              log.debug("Sent SNAP data echo to {}", sender);
             }
           }
         }
@@ -302,9 +318,41 @@ public class MockSnapService implements AutoCloseable {
       out.put(erPub);
       out.put(encSockAddr);
       // remaining 32 bytes stay zero (MACs not used in this SNAP variant)
+
+      // Derive the data-plane transport keys (Noise "split"): both sides compute the same temp1
+      // from ck (CK7), then k1/k2 -- the initiator (client) takes k1 as its send key and k2 as its
+      // receive key, so the responder (this mock) takes k1 as its receive key and k2 as its send
+      // key, matching SnapTunnel.ensureConnected()'s sendKey/recvKey derivation.
+      byte[] temp1 = b2sHmac(ck, new byte[0]);
+      byte[] k1 = b2sHmac(temp1, new byte[] {0x01});
+      byte[] k2 = b2sHmac2(temp1, k1, new byte[] {0x02});
+      serverSendKey = k2;
+      clientIndex = senderIndex;
+      echoCounter = 0;
+
       return response;
     } catch (InvalidCipherTextException e) {
       log.error("MockSnapService: crypto error during handshake", e);
+      return null;
+    }
+  }
+
+  /**
+   * Builds an encrypted WireGuard data packet carrying {@link #ECHO_PAYLOAD}, addressed back to the
+   * client from the most recently completed handshake.
+   */
+  private byte[] buildEchoReply() {
+    try {
+      byte[] ciphertext = aeadSeal(serverSendKey, echoCounter, ECHO_PAYLOAD, new byte[0]);
+      ByteBuffer out = ByteBuffer.allocate(16 + ciphertext.length).order(ByteOrder.LITTLE_ENDIAN);
+      out.putInt(TYPE_DATA);
+      out.putInt(clientIndex);
+      out.putLong(echoCounter);
+      out.put(ciphertext);
+      echoCounter++;
+      return out.array();
+    } catch (InvalidCipherTextException e) {
+      log.error("MockSnapService: crypto error building echo reply", e);
       return null;
     }
   }

@@ -14,9 +14,13 @@
 
 package org.scion.jpan.internal.snap;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,5 +73,33 @@ class SnapTunnelTest {
     int sent = session.sendPacket(new byte[0]);
 
     assertEquals(0, sent);
+  }
+
+  @Test
+  void receivePacket_decryptsRealDataPacketFromDataPlane() throws IOException {
+    // Coverage gap this closes: every other SnapTunnel test only ever sends (encrypt()) -- none
+    // ever receives a real post-handshake WireGuard data packet, so decrypt() was never actually
+    // exercised. MockSnapService now echoes an encrypted reply after the handshake, which lets
+    // receivePacket() drive the real AEAD-decrypt path instead of just the handshake crypto.
+    SnapTunnel session =
+        new SnapTunnel(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null /* no HTTP control client needed for handshake */);
+
+    // Triggers the handshake, then sends one data packet so the mock has a peer index to reply to.
+    session.sendPacket(new byte[] {1, 2, 3});
+
+    // Wait for the mock's echo reply, then read and decrypt it.
+    session.awaitReadable(2000);
+    ByteBuffer received = ByteBuffer.allocate(1024);
+    InetSocketAddress from = session.receivePacket(received);
+
+    assertNotNull(from, "expected an echo reply from the mock SNAP dataplane");
+    received.flip();
+    byte[] payload = new byte[received.remaining()];
+    received.get(payload);
+    assertArrayEquals(MockSnapService.ECHO_PAYLOAD, payload);
   }
 }
