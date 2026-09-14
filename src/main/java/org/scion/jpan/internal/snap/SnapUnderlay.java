@@ -20,7 +20,6 @@ import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
-
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.Config;
 

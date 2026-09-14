@@ -410,7 +410,7 @@ public class SnapTunnel {
         "SNAP sendPacket: {} SCION bytes -> {} WireGuard bytes to {} from local={}",
         scionPacket.length,
         wg.length,
-            firstHop,
+        firstHop,
         underlay.getLocalAddress());
     int sent = underlay.send(ByteBuffer.wrap(wg), firstHop);
     // underlay is non-blocking, so send() is all-or-nothing: either the whole encrypted
@@ -430,7 +430,7 @@ public class SnapTunnel {
             "SNAP receivePacket: got {} bytes from {} (dataPlane={})",
             underlayBuf.position(),
             srcAddress,
-                firstHop);
+            firstHop);
       }
       if (srcAddress == null) {
         return null;
