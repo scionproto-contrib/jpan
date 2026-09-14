@@ -220,7 +220,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
     synchronized (stateLock) {
       if (localAddress == null) {
         LocalAS.DispatcherPortRange ports = getService().getLocalPortRange();
-        if (ports.hasPortRange()) {
+        // Don't assign fixed port for SNAP. It's not necessary and may actually fail because
+        // SNAP needs some time to free up previously used ports.
+        if (snapUnderlay == null && ports.hasPortRange()) {
           // This is a bit ugly, we iterate through all ports to find a free one.
           int min = ports.getPortMin();
           int max = ports.getPortMax();

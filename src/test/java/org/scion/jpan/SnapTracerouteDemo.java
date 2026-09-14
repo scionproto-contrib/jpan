@@ -119,7 +119,7 @@ public class SnapTracerouteDemo {
     sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
     sb.append(" MTU: ").append(path.getMetadata().getMtu());
     if (path.getFirstHopAddress() != null) {
-      sb.append(" NextHop: ").append(path.getFirstHopAddress().getAddress()).append(nl);
+      sb.append(" NextHop: ").append(path.getFirstHopAddress()).append(nl);
     }
     println(sb.toString());
   }

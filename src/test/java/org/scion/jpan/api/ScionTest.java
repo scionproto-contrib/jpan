@@ -387,11 +387,10 @@ class ScionTest {
 
   @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange_snap() throws IOException {
-    // A SNAP-mode channel must be bound the same way as any other channel: SNAP is a real,
-    // addressable tunnel endpoint that other SCION hosts reach directly (see
-    // doc/SnapChannelAbstraction.md), not a NAT-style client that can move to a new port on every
-    // restart -- so it must honor the configured dispatcher port range too, not fall back to an
-    // ephemeral port.
+    // A SNAP-mode channel should not respect the port range.
+    // The ports are only useful when communicating directly with a border outer.
+    // With SNAP, assigning a fix port can actually cause problems because SNAP takes a long time to
+    // free up previously used ports.
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
     InetSocketAddress dstAddress = new InetSocketAddress("localhost", 12345);
     MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
@@ -411,7 +410,7 @@ class ScionTest {
       try (ScionDatagramChannel channel =
           PackageVisibilityHelper.openSnapChannel(service, session)) {
         channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
-        assertEquals(31000, channel.getLocalAddress().getPort());
+        assertNotEquals(31000, channel.getLocalAddress().getPort());
       }
     } finally {
       MockNetwork.stopTiny();
