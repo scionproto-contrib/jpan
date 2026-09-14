@@ -31,8 +31,8 @@ final class SnapDemoBootstrap {
   private SnapDemoBootstrap() {}
 
   /**
-   * Returns {@code args} unchanged if non-empty, otherwise reads and tokenizes {@code
-   * defaultFile} (one arg per line, blank lines and {@code //}-prefixed comment lines dropped).
+   * Returns {@code args} unchanged if non-empty, otherwise reads and tokenizes {@code defaultFile}
+   * (one arg per line, blank lines and {@code //}-prefixed comment lines dropped).
    */
   static String[] readArgsOrDefaultFile(String[] args, String defaultFile) throws IOException {
     if (args.length != 0) {
@@ -40,7 +40,10 @@ final class SnapDemoBootstrap {
     }
     List<String> lines = Files.readAllLines(Paths.get(defaultFile));
     lines =
-        lines.stream().map(String::trim).filter(s -> !s.startsWith("//")).collect(Collectors.toList());
+        lines.stream()
+            .map(String::trim)
+            .filter(s -> !s.startsWith("//"))
+            .collect(Collectors.toList());
     return lines.toArray(new String[0]);
   }
 

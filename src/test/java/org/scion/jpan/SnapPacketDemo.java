@@ -16,7 +16,6 @@ package org.scion.jpan;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 
 /** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */

@@ -180,10 +180,7 @@ TODO
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 ### TODO
-- MultiSnap support? Document? Builder?
 - Remove/check log.debug() messages
-- Tests + PackageVisibilityHelper.openSnapChannel(): Use non-null ScionService.
-- Ensure we don't use NAT when using SNAP. (think properly!)
 ### Added
 
 - PathSelector API.
