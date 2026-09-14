@@ -214,13 +214,13 @@ public class ScmpSenderAsync implements AutoCloseable {
           channel,
           PathSelectorNull.instance(),
           PathSelectorNull.Factory.instance(),
-          SnapUnderlay.createFor(service.getSnapDataPlane(), channel));
+          SnapUnderlay.tryCreate(service.getSnapDataPlane(), channel));
 
       try {
         // selector
         // Note: in SNAP mode, `channel` here is the same real channel SnapUnderlay uses for
         // I/O (see SnapUnderlay.createFor()), so registering it is correct either way.
-        this.selector = channel.provider().openSelector();
+        this.selector = super.channel().provider().openSelector();
         super.channel().configureBlocking(false);
         super.channel().register(this.selector, SelectionKey.OP_READ);
 
@@ -474,12 +474,7 @@ public class ScmpSenderAsync implements AutoCloseable {
 
     public ScmpSenderAsync build() {
       service = service == null ? ScionService.defaultService() : service;
-      try {
-        channel = channel == null ? SnapUnderlay.openChannelFor(service) : channel;
-        return new ScmpSenderAsync(service, port, handler, channel);
-      } catch (IOException e) {
-        throw new ScionRuntimeException(e);
-      }
+      return new ScmpSenderAsync(service, port, handler, channel);
     }
   }
 }

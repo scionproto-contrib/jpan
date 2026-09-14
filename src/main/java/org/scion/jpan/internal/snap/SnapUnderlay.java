@@ -20,8 +20,8 @@ import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.util.Arrays;
+
 import org.scion.jpan.ScionRuntimeException;
-import org.scion.jpan.ScionService;
 import org.scion.jpan.internal.util.Config;
 
 /**
@@ -40,34 +40,32 @@ public final class SnapUnderlay {
   }
 
   /**
-   * Opens a channel suitable for {@code service}. When SNAP mode is enabled, this explicitly opens
-   * an IPv4 ({@link StandardProtocolFamily#INET}) channel: the SNAP dataplane is IPv4-only, but a
-   * platform-default {@link DatagramChannel#open()} can come back IPv6/dual-stack depending on
-   * JVM/platform defaults (observed to vary even across runs on the same machine). Since this
-   * channel is now also SnapUnderlay's real transport channel (see {@link #createFor}), that
-   * mismatch silently breaks the WireGuard handshake -- the handshake-init "send" reports success,
-   * but the response from the (address-family-mismatched) dataplane is never received/matched, so
-   * it just times out. A non-SNAP channel keeps the platform default, e.g. for genuine IPv6 SCION
-   * deployments.
-   */
-  public static DatagramChannel openChannelFor(ScionService service) throws IOException {
-    if (service != null && Config.isUnderlaySnapAllowed()) {
-      return DatagramChannel.open(StandardProtocolFamily.INET);
-    }
-    return DatagramChannel.open();
-  }
-
-  /**
    * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should treat
    *     that as "use a plain UDP underlay instead."
    */
-  public static SnapUnderlay createFor(SnapDataplaneDetails dp, DatagramChannel channel) {
+  public static SnapUnderlay tryCreate(SnapDataplaneDetails dp, DatagramChannel channel) {
     if (!Config.isUnderlaySnapAllowed()) {
       return null;
     }
     if (dp == null || dp.getSnapStaticX25519() == null) {
       throw new ScionRuntimeException(
           "SNAP mode requested but no SNAP dataplane/static key available");
+    }
+
+    // Snap requires an IPv4 ({@link StandardProtocolFamily#INET}) channel: the SNAP dataplane is
+    // IPv4-only, but a platform-default {@link DatagramChannel#open()} can come back
+    // IPv6/dual-stack depending on JVM/platform defaults (observed to vary even across runs on
+    // the same machine).
+    // Since this channel is now also SnapUnderlay's real transport channel, that mismatch silently
+    // breaks the WireGuard handshake -- the handshake-init "send" reports success,
+    // but the response from the (address-family-mismatched) dataplane is never received/matched, so
+    // it just times out.
+    if (channel == null) {
+      try {
+        channel = DatagramChannel.open(StandardProtocolFamily.INET);
+      } catch (IOException e) {
+        throw new ScionRuntimeException("Could not create IPv4 socket for SNAP", e);
+      }
     }
 
     String snapTunControlEndpoint = dp.getSnapTunControlAddress();
@@ -121,9 +119,8 @@ public final class SnapUnderlay {
   }
 
   /**
-   *
    * @return the SNAP assigned source address or 'null' if the SNAP connection has not been
-   * established
+   *     established
    */
   public InetSocketAddress currentSourceAddress() {
     return tunnel.localTunnelAddress();

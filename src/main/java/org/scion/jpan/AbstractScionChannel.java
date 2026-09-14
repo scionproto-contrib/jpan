@@ -61,8 +61,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   private final PathSelector pathSelectorForConnect;
   private PathSelector pathSelectorForConnectPath;
   private final PathSelectorFactory pathSelectorFactory;
-  // Non-null if this channel routes underlay traffic through a SNAP tunnel. See sendUnderlay(),
-  // receiveUnderlay(), close() and ensureSnapSourceAddress() below.
+  // Non-null if this channel routes underlay traffic through a SNAP tunnel
   private final SnapUnderlay snapUnderlay;
 
   protected AbstractScionChannel(
@@ -79,6 +78,16 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       PathSelector connectSelector,
       PathSelectorFactory pathSelectorFactory,
       SnapUnderlay snapUnderlay) {
+    if (snapUnderlay != null && channel != null && channel != snapUnderlay.transportChannel()) {
+      throw new ScionRuntimeException("Transport channel must be the same as SNAP channel");
+    }
+    if (channel == null) {
+      try {
+        channel = snapUnderlay == null ? DatagramChannel.open() : snapUnderlay.transportChannel();
+      } catch (IOException e) {
+        throw new ScionRuntimeException(e);
+      }
+    }
     this.channel = channel;
     this.service = service;
     this.bufferReceive = ByteBuffer.allocateDirect(2000);
@@ -606,9 +615,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   /**
-   * Return the currently assigned override source address.
-   * Override addresses can be assigned via {@link #setOverrideSourceAddress(InetSocketAddress)}
-   * or implicitly by opening a SNAP connection.
+   * Return the currently assigned override source address. Override addresses can be assigned via
+   * {@link #setOverrideSourceAddress(InetSocketAddress)} or implicitly by opening a SNAP
+   * connection.
+   *
    * @return the address.
    */
   public InetSocketAddress getOverrideSourceAddress() {

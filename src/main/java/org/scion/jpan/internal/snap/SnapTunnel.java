@@ -125,7 +125,7 @@ public class SnapTunnel {
 
   private final DatagramChannel underlay;
   private final Selector selector;
-  private final InetSocketAddress dataPlane;
+  private final InetSocketAddress firstHop;
   private final byte[] peerStatic;
   private final SnapControlClient snapControlClient;
   private final SecureRandom random = new SecureRandom();
@@ -148,31 +148,26 @@ public class SnapTunnel {
 
   /**
    * @param underlay The real channel to carry SNAP/WireGuard traffic. If non-null, it is adopted
-   *     as-is (forced to non-blocking, left unbound -- binding is the caller's responsibility, so
-   *     that a caller who needs a specific port or the SCION dispatcher port range gets to bind it
-   *     before this session ever sends/receives on it). If null (e.g. in tests that don't have a
-   *     real outer channel to share), a fresh, already-bound-to-ANY-port channel is opened instead.
+   *     as-is. If null (e.g. in tests that don't have a real outer channel to share), a fresh one
+   *     is opened instead. Either way the channel is left unbound -- binding is always the caller's
+   *     responsibility, so that a caller who needs a specific port or the SCION dispatcher port
+   *     range gets to bind it before this session ever sends/receives on it.
    */
   public SnapTunnel(
       DatagramChannel underlay,
-      InetSocketAddress dataPlane,
+      InetSocketAddress firstHop,
       byte[] peerStatic,
       SnapControlClient snapControlClient) {
     try {
-      if (underlay != null) {
-        this.underlay = underlay;
-        this.underlay.configureBlocking(false);
-      } else {
-        this.underlay = DatagramChannel.open(StandardProtocolFamily.INET);
-        this.underlay.configureBlocking(false);
-        this.underlay.bind(null);
-      }
+      this.underlay =
+          underlay != null ? underlay : DatagramChannel.open(StandardProtocolFamily.INET);
+      this.underlay.configureBlocking(false);
       this.selector = Selector.open();
       this.underlay.register(this.selector, SelectionKey.OP_READ);
     } catch (IOException e) {
       throw new ScionRuntimeException("failed to open SNAP underlay socket", e);
     }
-    this.dataPlane = dataPlane;
+    this.firstHop = firstHop;
     this.peerStatic = peerStatic;
     this.snapControlClient = snapControlClient;
   }
@@ -288,7 +283,7 @@ public class SnapTunnel {
         drain.clear();
       }
 
-      underlay.send(ByteBuffer.wrap(initPacket), dataPlane);
+      underlay.send(ByteBuffer.wrap(initPacket), firstHop);
 
       ByteBuffer recv = ByteBuffer.allocate(4096);
       WireGuardPacket.HandshakeResponse response;
@@ -304,7 +299,7 @@ public class SnapTunnel {
           awaitReadable(TimeUnit.NANOSECONDS.toMillis(remainingNanos));
           continue;
         }
-        if (!dataPlane.equals(src)) {
+        if (!firstHop.equals(src)) {
           recv.clear();
           continue;
         }
@@ -401,7 +396,7 @@ public class SnapTunnel {
   }
 
   public InetSocketAddress dataPlaneAddress() {
-    return dataPlane;
+    return firstHop;
   }
 
   public synchronized InetSocketAddress localTunnelAddress() {
@@ -415,9 +410,9 @@ public class SnapTunnel {
         "SNAP sendPacket: {} SCION bytes -> {} WireGuard bytes to {} from local={}",
         scionPacket.length,
         wg.length,
-        dataPlane,
+            firstHop,
         underlay.getLocalAddress());
-    int sent = underlay.send(ByteBuffer.wrap(wg), dataPlane);
+    int sent = underlay.send(ByteBuffer.wrap(wg), firstHop);
     // underlay is non-blocking, so send() is all-or-nothing: either the whole encrypted
     // datagram went out (sent == wg.length) or none of it did (sent == 0). Report the SCION-level
     // byte count either way, since that -- not the WireGuard-encrypted wire size -- is what
@@ -435,12 +430,12 @@ public class SnapTunnel {
             "SNAP receivePacket: got {} bytes from {} (dataPlane={})",
             underlayBuf.position(),
             srcAddress,
-            dataPlane);
+                firstHop);
       }
       if (srcAddress == null) {
         return null;
       }
-      if (!dataPlane.equals(srcAddress)) {
+      if (!firstHop.equals(srcAddress)) {
         log.debug("SNAP receivePacket: ignoring packet from unexpected source {}", srcAddress);
         underlayBuf.clear();
         continue;

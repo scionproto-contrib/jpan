@@ -45,21 +45,17 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
   private final SimpleCache<InetSocketAddress, PathSelector> resolvedDestinations =
       new SimpleCache<>(100, true);
 
+  @Deprecated // TODO remove in 0.8.0. Please you the other constructor
   protected ScionDatagramChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
       PathSelector connectSelector,
       PathSelectorFactory factory)
       throws IOException {
-    this(
-        service,
-        channel,
-        connectSelector,
-        factory,
-        service == null ? null : SnapUnderlay.createFor(service.getSnapDataPlane(), channel));
+    this(service, channel, connectSelector, factory, null);
   }
 
-  ScionDatagramChannel(
+  protected ScionDatagramChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
       PathSelector connectSelector,
@@ -364,8 +360,13 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         service = ScionService.defaultService();
       }
 
-      if (channel == null) {
-        channel = SnapUnderlay.openChannelFor(service);
+      SnapUnderlay snap = null;
+      if (service != null) {
+        snap = SnapUnderlay.tryCreate(service.getSnapDataPlane(), channel);
+        if (snap != null) {
+          // SNAP create a channel if the incoming channel was 'null'
+          channel = snap.transportChannel();
+        }
       }
 
       if (selector == null && service != null) {
@@ -376,7 +377,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
       }
 
-      return new ScionDatagramChannel(service, channel, selector, factory);
+      return new ScionDatagramChannel(service, channel, selector, factory, snap);
     }
   }
 }

@@ -530,10 +530,6 @@ public class ScionService {
     return localAS.getBorderRouterAddress(interfaceID);
   }
 
-  List<LocalAS.SnapControlNode> getSnapControlNodes() {
-    return localAS.getSnapControlNodes();
-  }
-
   SnapDataplaneDetails getSnapDataPlane() {
     return snapDataplaneDetails;
   }

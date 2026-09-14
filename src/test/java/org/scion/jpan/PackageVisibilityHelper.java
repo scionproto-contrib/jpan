@@ -229,14 +229,13 @@ public class PackageVisibilityHelper {
    */
   public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnel tunnel)
       throws IOException {
-    DatagramChannel udp = DatagramChannel.open();
     SnapUnderlay snapUnderlay = SnapUnderlay.wrap(tunnel);
     if (service == null) {
-      return new ScionDatagramChannel(null, udp, null, null, snapUnderlay);
+      return new ScionDatagramChannel(null, null, null, null, snapUnderlay);
     }
     PathSelector selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
     PathSelectorFactory factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
-    return new ScionDatagramChannel(service, udp, selector, factory, snapUnderlay);
+    return new ScionDatagramChannel(service, null, selector, factory, snapUnderlay);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {
