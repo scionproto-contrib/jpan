@@ -46,14 +46,6 @@ public class SnapPacketDemo {
     }
 
     try (ScionDatagramChannel sender = ScionDatagramChannel.newBuilder().service(service).open()) {
-      // Explicit bind, matching SnapTracerouteDemo/SnapEchoDemo's setLocalPort(): without this,
-      // ScionDatagramChannel has no local-port option of its own, so binding happens lazily via
-      // ensureBound()'s generic dispatcher-port-range fallback, which -- for this SNAP-mode AS's
-      // full 1-65535 range -- deterministically lands on the same low port (1024) every run and
-      // repeatedly trips the SNAP dataplane's "no immediate port reuse" rejection. Binding
-      // explicitly to cli.localPort (0 by default) instead asks the OS for a fresh ephemeral port
-      // each run, same as the other demos.
-      // sender.bind(new InetSocketAddress(cli.localPort));
       println("Resolved local address: ");
       println("  " + localAddress);
       printPath(path);
