@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- Add ScionUtil.parseScionAddress("64-2:0:9,[123.123.123.123]);
+  - Removed ScionUtil.parseInetAddress
 - Performance TODO: When connected: buffer complete SCION header i.o. building it
   every time. Add cached header to "Path" for send()?
 - Support Netty?!?
