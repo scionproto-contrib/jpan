@@ -120,6 +120,15 @@ public final class SnapUnderlay {
     return tunnel.localTunnelAddress();
   }
 
+  /**
+   *
+   * @return the SNAP assigned source address or 'null' if the SNAP connection has not been
+   * established
+   */
+  public InetSocketAddress currentSourceAddress() {
+    return tunnel.localTunnelAddress();
+  }
+
   public void close() {
     tunnel.close();
   }

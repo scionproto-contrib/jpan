@@ -602,11 +602,23 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
    * @param address The external source address
    */
   public void setOverrideSourceAddress(InetSocketAddress address) {
-    this.overrideExternalAddress = address;
+    overrideExternalAddress = address;
   }
 
+  /**
+   * Return the currently assigned override source address.
+   * Override addresses can be assigned via {@link #setOverrideSourceAddress(InetSocketAddress)}
+   * or implicitly by opening a SNAP connection.
+   * @return the address.
+   */
   public InetSocketAddress getOverrideSourceAddress() {
-    return this.overrideExternalAddress;
+    if (overrideExternalAddress != null) {
+      return overrideExternalAddress;
+    }
+    if (snapUnderlay != null) {
+      return snapUnderlay.currentSourceAddress();
+    }
+    return null;
   }
 
   private InetSocketAddress getSourceAddress(Path path) {
@@ -650,24 +662,6 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       return snapUnderlay.send(buffer);
     }
     return channel.send(buffer, remoteHost);
-  }
-
-  /**
-   * Ensures the SNAP tunnel handshake has completed and installs the SNAP-server-assigned address
-   * as the SCION source address. Without this, the source address would fall back to {@link
-   * org.scion.jpan.internal.NatMapping}, which knows nothing about the SNAP tunnel and would report
-   * the local (pre-NAT) address of an underlay socket that isn't even used to send traffic. No-op
-   * if this channel is not in SNAP mode. Called from {@link #buildHeader} so that neither {@link
-   * ScionDatagramChannel} nor {@link ScmpSenderAsync} need to call it explicitly.
-   */
-  private void ensureSnapSourceAddress() {
-    if (snapUnderlay == null || getOverrideSourceAddress() != null) {
-      return;
-    }
-    InetSocketAddress assigned = snapUnderlay.ensureConnectedSourceAddress();
-    if (assigned != null) {
-      setOverrideSourceAddress(assigned);
-    }
   }
 
   /**
@@ -825,13 +819,12 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // This may be necessary for getSourceAddress(), but it is definitely necessary for
       // consistent API behavior that getLocalAddress() should return an address after send().
       ensureBound();
-      ensureSnapSourceAddress();
       buffer.clear();
       long srcIsdAs;
       InetAddress srcAddress;
       if (path instanceof ResponsePath) {
         // We get the source ISD/AS and IP from the path because ScionService may be null.
-        // Also, we may be behind a NAT, so the path's address is known to be correct.
+        // Also, we may be behind a NAT or SNAP, so the path's address is known to be correct.
         ResponsePath rPath = (ResponsePath) path;
         srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
