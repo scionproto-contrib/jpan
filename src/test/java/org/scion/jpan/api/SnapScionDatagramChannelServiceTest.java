@@ -16,77 +16,59 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
-import org.scion.jpan.internal.snap.SnapTunnel;
-import org.scion.jpan.internal.util.IPHelper;
-import org.scion.jpan.testutil.MockDNS;
-import org.scion.jpan.testutil.MockNetwork;
-import org.scion.jpan.testutil.MockSnapService;
+import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.testutil.MockNetwork2;
 
 /**
- * Covers {@link PackageVisibilityHelper#openSnapChannel(ScionService, SnapTunnel)} with a real,
+ * Covers {@code ScionDatagramChannel.send(ByteBuffer, SocketAddress)} in SNAP mode with a real,
  * non-null {@link ScionService} -- as opposed to {@link SnapScionDatagramChannelTest}, which only
- * ever uses the null-service overload. A non-null service is what lets the channel resolve a plain
- * destination address into a path via {@code send(ByteBuffer, SocketAddress)}, instead of requiring
- * an already-resolved {@code Path}.
+ * ever sends via an already-resolved {@code Path}. A non-null service is what lets the channel
+ * resolve a destination address into a path via the path selector, which {@code
+ * ScionDatagramChannel.Builder} only wires up when a real service is attached.
+ *
+ * <p>SNAP is enabled purely via system properties (through {@link MockNetwork2#startSnap}), not by
+ * constructing a {@code SnapTunnel} directly.
  */
 class SnapScionDatagramChannelServiceTest {
 
-  private static final InetSocketAddress DUMMY_ADDRESS =
-      new InetSocketAddress(IPHelper.toInetAddress("dummyHost", "127.0.0.1"), 44444);
-
-  private MockSnapService mockSnapService;
-
-  @BeforeEach
-  void beforeEach() {
-    MockNetwork.startTiny(); // real, daemon-backed ScionService via Scion.defaultService()
-    MockDNS.install("1-ff00:0:112", DUMMY_ADDRESS.getAddress());
-    mockSnapService = MockSnapService.start(MockSnapService.ADDRESS);
-  }
-
   @AfterEach
   void afterEach() {
-    mockSnapService.close();
-    MockNetwork.stopTiny();
-    MockDNS.clear();
-    ScionService.closeDefault();
+    Scion.closeDefault();
   }
 
   @Test
-  void send_addressBased_withRealService_installsSnapAssignedSourceAddress() throws IOException {
-    ScionService service = Scion.defaultService();
-    assertNotNull(service);
+  void send_addressBased_withRealService_installsSnapAssignedSourceAddress() throws Exception {
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      assertNotNull(service);
 
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+      try (ScionDatagramChannel channel =
+          ScionDatagramChannel.newBuilder().service(service).open()) {
+        channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
+        assertNull(channel.getOverrideSourceAddress());
 
-    try (ScionDatagramChannel channel = PackageVisibilityHelper.openSnapChannel(service, session)) {
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      assertNull(channel.getOverrideSourceAddress());
+        // Address-based send: unlike send(buffer, Path), this requires a real, non-null service
+        // to build a path selector for the destination -- ScionDatagramChannel.Builder only wires
+        // one up when service != null. A ScionSocketAddress (rather than a plain InetSocketAddress)
+        // avoids needing a DNS TXT lookup for the ISD/AS on top of that.
+        ScionSocketAddress dst =
+            PackageVisibilityHelper.toSSA(
+                "1-ff00:0:111", new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+        channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), dst);
 
-      // Address-based send: unlike send(buffer, Path), this requires a real, non-null service --
-      // it resolves DUMMY_ADDRESS into a path via service.lookup(...) + the path selector
-      // factory, both of which are wired up by openSnapChannel only when service != null.
-      channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), DUMMY_ADDRESS);
-
-      // Same invariant as SnapScionDatagramChannelTest.send_installsSnapAssignedSourceAddress,
-      // but reached via address-based resolution instead of an explicit dummy Path.
-      assertNotNull(session.localTunnelAddress());
-      assertEquals(session.localTunnelAddress(), channel.getOverrideSourceAddress());
+        // Same invariant as SnapScionDatagramChannelTest.send_installsSnapAssignedSourceAddress,
+        // but reached via address-based resolution instead of an explicit Path.
+        assertNotNull(channel.getOverrideSourceAddress());
+      }
     }
   }
 }

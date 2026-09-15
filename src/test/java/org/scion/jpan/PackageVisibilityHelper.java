@@ -49,6 +49,17 @@ public class PackageVisibilityHelper {
     return ss.getControlServiceConnection();
   }
 
+  /**
+   * The SNAP dataplane address {@code ss} resolved at construction time, or {@code null} if SNAP
+   * isn't enabled/resolved for it. Useful for asserting that two independently-constructed {@link
+   * ScionService} instances (e.g. via {@link org.scion.jpan.Scion#newServiceWithEndhostApi}) each
+   * resolved their own, distinct SNAP dataplane rather than accidentally sharing one.
+   */
+  public static InetSocketAddress getSnapDataPlaneAddress(ScionService ss) {
+    org.scion.jpan.internal.snap.SnapDataplaneDetails dp = ss.getSnapDataPlane();
+    return dp == null ? null : dp.getAddress();
+  }
+
   public static List<PathMetadata> getPaths(ScionService ss, long srcIsdAs, long dstIsdAs) {
     return ss.getPathList(srcIsdAs, dstIsdAs);
   }

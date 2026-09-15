@@ -16,145 +16,89 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Constants;
-import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
+import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.internal.snap.*;
+import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockSnapApiTokenService;
-import org.scion.jpan.testutil.MockSnapService;
 
 /**
- * MockSnapService.java (filled in) — implements the full mock SNAP service: <br>
- * - Generates an X25519 static keypair on startup <br>
- * - UDP dataplane thread: receives 148-byte WireGuard handshake init packets, performs the complete
- * SNAP-variant Noise protocol (decrypts the initiator's static key, generates a responder
- * ephemeral, computes the key derivation chain), and responds with a valid 112-byte handshake
- * response containing an encrypted tunnel address assignment (10.0.0.1:12345) <br>
- * - HTTP control server (inner SnapControlServer, extends SimpleHttpServer): serves
- * GetSnapDataPlaneAddress (returns the UDP address + server static key) and RegisterSnapTunIdentity
- * (returns all-zeros PSK share → no PSK) <br>
- * - Uses port 0 (ephemeral) to avoid conflicts; getControlAddress() returns the actual host:port
- * after binding
+ * Covers {@link ScionDatagramChannel} wired up for SNAP end-to-end through the real, public {@code
+ * ScionDatagramChannel.Builder} -- i.e. through {@code SnapUnderlay.createFor()} exactly as
+ * production code does, backed by a real (mock) {@link ScionService} whose {@code
+ * preferSnapUnderlay()}/{@code getSnapDataPlane()} point at a genuinely running {@code
+ * MockSnapService} dataplane+control server (via {@link MockNetwork2#startSnap}).
  *
- * <p>PackageVisibilityHelper.java — added openSnapChannel(SnapTunnel) to construct a SNAP-mode
- * ScionDatagramChannel from a session directly, for testing without a full ScionService
- *
- * <p>SnapScionDatagramChannelTest.java (new) — connect_handshakeSucceeds(): starts the mock,
- * creates a SnapTunnel pointing at its dataplane, wraps it in a SNAP-mode ScionDatagramChannel,
- * calls ensureConnected(), and asserts localTunnelAddress() != null (proving the WireGuard
- * handshake completed end-to-end)
- *
- * <p>MockNetwork2.java (fixed two bugs): the start() factory was missing the new useSnap argument
- * to the constructor; close() was not shutting down the snap service or clearing the SNAP system
- * properties
+ * <p>Neither test here constructs a {@code SnapTunnel} (or any other {@code internal.snap} class)
+ * directly -- SNAP is enabled purely via system properties, matching how a real application would
+ * configure it, so this also exercises the actual bootstrap wiring (endhost-API/AA-token flow
+ * included), not just the tunnel crypto in isolation.
  */
 class SnapScionDatagramChannelTest {
 
-  private MockSnapService mockSnapService;
-
-  @BeforeEach
-  void beforeEach() {
-    mockSnapService = MockSnapService.start(MockSnapService.ADDRESS);
-  }
+  private static final long DST_IA = ScionUtil.parseIA("1-ff00:0:111");
+  private static final InetSocketAddress DST_ADDRESS = new InetSocketAddress("::1", 12345);
 
   @AfterEach
   void afterEach() {
-    mockSnapService.close();
+    Scion.closeDefault();
   }
 
   @Test
-  void connect_handshakeSucceeds() throws IOException {
-    // Create a tunnel session pointing at the mock SNAP dataplane.
-    // SnapTunnel opens its own internal UDP channel; the first argument is unused.
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+  void send_installsSnapAssignedSourceAddress() throws Exception {
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112")) {
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(DST_IA, DST_ADDRESS).get(0);
+      assertNotNull(path);
 
-    // Wrap it in a SNAP-mode ScionDatagramChannel and trigger the WireGuard handshake.
-    try (ScionDatagramChannel channel = PackageVisibilityHelper.openSnapChannel(session)) {
-      assertNotNull(channel);
+      try (ScionDatagramChannel channel =
+          ScionDatagramChannel.newBuilder().service(service).open()) {
+        assertNull(channel.getOverrideSourceAddress());
 
-      session.ensureConnected();
+        channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
 
-      // A non-null localTunnelAddress proves the handshake completed successfully and the
-      // mock assigned a tunnel address to the client.
-      assertNotNull(session.localTunnelAddress());
-    }
-  }
-
-  @Test
-  void connect_handshakeSucceedsWithApiToken() throws IOException {
-    // Start a mock AA service that issues tokens and a mock SNAP control service that requires one.
-    try (MockSnapApiTokenService aaService = MockSnapApiTokenService.start();
-        MockSnapService snapService =
-            MockSnapService.start("127.0.0.1:0", MockSnapApiTokenService.SNAP_TOKEN)) {
-
-      // Fetch the token from the mock AA service using the known API key.
-      String token =
-          AAClient.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
-      assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
-
-      System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, token);
-      try {
-        // Obtain dataplane info through the authenticated SNAP control API.
-        SnapControlClient controlClient = new SnapControlClient(snapService.getControlUrl());
-        SnapDataplaneDetails dataPlane = controlClient.getDataPlaneAddress();
-
-        SnapTunnel session =
-            new SnapTunnel(
-                null, dataPlane.getAddress(), dataPlane.getSnapStaticX25519(), controlClient);
-
-        session.ensureConnected();
-        assertNotNull(session.localTunnelAddress());
-      } finally {
-        System.clearProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN);
+        // The SNAP tunnel's server-assigned address must be installed as the SCION source address
+        // BEFORE the header is built -- this is the fix for JPAN previously using the wrong
+        // (NAT-mapped/local) source address for all SNAP traffic.
+        assertNotNull(channel.getOverrideSourceAddress());
       }
     }
   }
 
   @Test
-  void send_installsSnapAssignedSourceAddress() throws IOException {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+  void send_withApiKeyAuthFlow_installsSnapAssignedSourceAddress() throws Exception {
+    // Exercises the full API-key -> AA token -> SNAP control -> handshake chain, purely via
+    // properties: MockNetwork2.startSnap() already points PROPERTY_SNAP_CONTROL_PLANE at its
+    // MockSnapService, but also pre-sets a plain PROPERTY_SNAP_AUTH_TOKEN directly. Setting
+    // PROPERTY_SNAP_AUTH_SERVICE/PROPERTY_SNAP_AUTH_KEY on top of that makes
+    // Scion.defaultService() take the API-key branch instead, fetching a real token from
+    // MockSnapApiTokenService and overwriting the token property with it before falling back to
+    // the already-configured path service (the AA mock returns no discovery URL).
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
+        MockSnapApiTokenService aaService = MockSnapApiTokenService.start()) {
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, aaService.getBaseUrl());
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, MockSnapApiTokenService.API_KEY);
+      try {
+        ScionService service = Scion.defaultService();
+        Path path = service.getPaths(DST_IA, DST_ADDRESS).get(0);
+        assertNotNull(path);
 
-    try (ScionDatagramChannel channel = PackageVisibilityHelper.openSnapChannel(session)) {
-      // Loopback (not wildcard/ANY) avoids AbstractScionChannel falling back to NatMapping, which
-      // requires a real ScionService that this channel (built with service=null) doesn't have.
-      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0));
-      assertNull(channel.getOverrideSourceAddress());
-
-      Path path =
-          PackageVisibilityHelper.createDummyPath(
-              ScionUtil.parseIA("1-ff00:0:110"),
-              ScionUtil.parseIA("1-ff00:0:112"),
-              new byte[] {127, 0, 0, 1},
-              54321,
-              new byte[0],
-              new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
-
-      channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
-
-      // The SNAP tunnel's server-assigned address must be installed as the SCION source address
-      // BEFORE the header is built -- this is the fix for JPAN previously using the wrong
-      // (NAT-mapped/local) source address for all SNAP traffic.
-      assertNotNull(session.localTunnelAddress());
-      assertEquals(session.localTunnelAddress(), channel.getOverrideSourceAddress());
+        try (ScionDatagramChannel channel =
+            ScionDatagramChannel.newBuilder().service(service).open()) {
+          channel.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), path);
+          assertNotNull(channel.getOverrideSourceAddress());
+        }
+      } finally {
+        System.clearProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE);
+        System.clearProperty(Constants.PROPERTY_SNAP_AUTH_KEY);
+      }
     }
   }
 }

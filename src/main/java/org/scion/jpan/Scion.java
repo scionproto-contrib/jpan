@@ -89,6 +89,22 @@ public final class Scion {
     return CloseableService.create(filePath, ScionService.Mode.BOOTSTRAP_TOPO_FILE);
   }
 
+  /**
+   * Create a new service instance that uses an endhost-API path service (the new SCION
+   * control-plane API) to bootstrap. Services created with this method will never be returned by
+   * {@link #defaultService()}.
+   *
+   * <p>Unlike {@link #defaultService()}, this always resolves SNAP dataplane info too when SNAP is
+   * enabled ({@code org.scion.underlay.mode}/{@code SCION_UNDERLAY_MODE}), at construction time.
+   *
+   * @param pathServiceAddress address (or {@code ;}-joined candidate list) of the endhost-API path
+   *     service.
+   * @return new ScionService instance
+   */
+  public static CloseableService newServiceWithEndhostApi(String pathServiceAddress) {
+    return CloseableService.create(pathServiceAddress, ScionService.Mode.BOOTSTRAP_PATH_SERVICE);
+  }
+
   public static class CloseableService extends ScionService implements Closeable {
 
     static CloseableService create(String address, Mode mode) {
