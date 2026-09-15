@@ -24,6 +24,7 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockSnapService;
 
 class SnapTunnelTest {
@@ -101,5 +102,36 @@ class SnapTunnelTest {
     byte[] payload = new byte[received.remaining()];
     received.get(payload);
     assertArrayEquals(MockSnapService.ECHO_PAYLOAD, payload);
+  }
+
+  @Test
+  void receivePacket_relaysThroughPlainMirrorServer() throws IOException {
+    // Unlike the canned-ECHO_PAYLOAD test above, this proves data genuinely round-trips through
+    // something else: the mock decrypts what the client sent, forwards the plaintext verbatim to
+    // a plain (non-SNAP) UDP mirror, and re-encrypts whatever the mirror sends back -- so the
+    // bytes received here must match exactly what was sent, not a fixed constant.
+    try (MockEchoServer mirror = MockEchoServer.start()) {
+      mockSnapService.relayTo(mirror.getAddress());
+
+      SnapTunnel session =
+          new SnapTunnel(
+              null,
+              mockSnapService.getDataplaneAddress(),
+              mockSnapService.getStaticPublicKey(),
+              null /* no HTTP control client needed for handshake */);
+
+      byte[] sent = {9, 8, 7, 6, 5};
+      session.sendPacket(sent);
+
+      session.awaitReadable(2000);
+      ByteBuffer received = ByteBuffer.allocate(1024);
+      InetSocketAddress from = session.receivePacket(received);
+
+      assertNotNull(from, "expected a relayed reply via the mirror server");
+      received.flip();
+      byte[] payload = new byte[received.remaining()];
+      received.get(payload);
+      assertArrayEquals(sent, payload);
+    }
   }
 }

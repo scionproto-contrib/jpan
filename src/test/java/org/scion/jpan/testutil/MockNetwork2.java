@@ -189,6 +189,11 @@ public class MockNetwork2 implements AutoCloseable {
     return topoServer;
   }
 
+  /** Non-null only after {@link #startSnap}. */
+  public MockSnapService getSnapService() {
+    return snapService;
+  }
+
   public List<MockBorderRouter> getBorderRouters() {
     return routers.getBorderRouters();
   }

@@ -16,6 +16,7 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
@@ -29,7 +30,9 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionUtil;
+import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -49,7 +52,10 @@ import org.scion.jpan.testutil.MockSnapService;
  */
 class SnapScionDatagramChannelMultiServiceTest {
 
-  private static final long DST_IA = ScionUtil.parseIA("1-ff00:0:111");
+  // Same AS as the local client (ASff00_0_112): PathBuilder returns a path with an empty raw path
+  // for same-AS traffic, which is required for the round-trip verification below to work -- see
+  // SnapScionDatagramChannelTest's comment for why.
+  private static final long DST_IA = ScionUtil.parseIA("1-ff00:0:112");
   private static final InetSocketAddress DST_ADDRESS = new InetSocketAddress("::1", 12345);
 
   @Test
@@ -57,10 +63,16 @@ class SnapScionDatagramChannelMultiServiceTest {
       throws Exception {
     try (MockNetwork2 nw = MockNetwork2.startPS(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
         MockSnapService snapA = MockSnapService.start("127.0.0.1:0");
-        MockSnapService snapB = MockSnapService.start("127.0.0.1:0")) {
+        MockSnapService snapB = MockSnapService.start("127.0.0.1:0");
+        MockEchoServer mirrorA = MockEchoServer.start();
+        MockEchoServer mirrorB = MockEchoServer.start()) {
       // Two independent mock SNAP services: separate UDP dataplanes and separate randomly
       // generated X25519 static keys -- i.e. genuinely different SNAP services.
       assertNotEquals(snapA.getDataplaneAddress(), snapB.getDataplaneAddress());
+      // Each SNAP service relays through its own plain, non-SNAP mirror, so a round trip proves
+      // data actually flowed through the correct tunnel and did not cross over to the other one.
+      snapA.relayTo(mirrorA.getAddress());
+      snapB.relayTo(mirrorB.getAddress());
 
       System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
       String pathServiceAddress = System.getProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
@@ -98,26 +110,33 @@ class SnapScionDatagramChannelMultiServiceTest {
 
             // A shared start signal makes both threads race into their handshake as close to
             // simultaneously as possible, rather than one finishing before the other even starts.
+            byte[] sentA = {1, 2, 3};
+            byte[] sentB = {4, 5, 6};
             CountDownLatch start = new CountDownLatch(1);
             ExecutorService pool = Executors.newFixedThreadPool(2);
             try {
-              Future<?> sendA =
+              Future<byte[]> sendA =
                   pool.submit(
                       () -> {
                         awaitLatch(start);
-                        channelA.send(ByteBuffer.wrap(new byte[] {1, 2, 3}), pathA);
-                        return null;
+                        channelA.send(ByteBuffer.wrap(sentA), pathA);
+                        return receiveWithRetry(channelA);
                       });
-              Future<?> sendB =
+              Future<byte[]> sendB =
                   pool.submit(
                       () -> {
                         awaitLatch(start);
-                        channelB.send(ByteBuffer.wrap(new byte[] {4, 5, 6}), pathB);
-                        return null;
+                        channelB.send(ByteBuffer.wrap(sentB), pathB);
+                        return receiveWithRetry(channelB);
                       });
               start.countDown();
-              sendA.get(10, TimeUnit.SECONDS);
-              sendB.get(10, TimeUnit.SECONDS);
+              byte[] receivedA = sendA.get(10, TimeUnit.SECONDS);
+              byte[] receivedB = sendB.get(10, TimeUnit.SECONDS);
+
+              // Each channel must have gotten back exactly its own data, not the other's --
+              // proving there is no cross-talk between the two concurrently-handshaking tunnels.
+              assertArrayEquals(sentA, receivedA);
+              assertArrayEquals(sentB, receivedB);
             } finally {
               pool.shutdownNow();
             }
@@ -142,5 +161,26 @@ class SnapScionDatagramChannelMultiServiceTest {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
+  }
+
+  /** {@code receive()} is non-blocking, so poll briefly for the mirrored reply to arrive. */
+  private static byte[] receiveWithRetry(ScionDatagramChannel channel) throws IOException {
+    ByteBuffer buffer = ByteBuffer.allocate(1024);
+    for (int i = 0; i < 100; i++) {
+      ScionPathAddress from = channel.receive(buffer);
+      if (from != null) {
+        buffer.flip();
+        byte[] received = new byte[buffer.remaining()];
+        buffer.get(received);
+        return received;
+      }
+      try {
+        Thread.sleep(5);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(e);
+      }
+    }
+    return null;
   }
 }
