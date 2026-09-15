@@ -59,9 +59,6 @@ public class MockSnapService implements AutoCloseable {
   private static final int TYPE_HANDSHAKE_RESPONSE = 2;
   private static final int TYPE_DATA = 4;
 
-  /** Plaintext payload echoed back (encrypted) for every data packet received after handshake. */
-  public static final byte[] ECHO_PAYLOAD = {'S', 'N', 'A', 'P', '-', 'E', 'C', 'H', 'O'};
-
   // These must be identical to the constants in SnapTunnel.
   private static final byte[] INITIAL_CHAIN_KEY = {
     96,
@@ -159,13 +156,15 @@ public class MockSnapService implements AutoCloseable {
   private int clientIndex;
   private long echoCounter;
 
-  // Optional: when set (via relayTo()), a data packet from the client is decrypted, forwarded
-  // verbatim to this plain (non-SNAP) address, and whatever comes back is re-encrypted and sent
-  // to the client -- i.e. a real round trip through a "network" instead of a canned reply. Uses
-  // its own channel since it speaks plain UDP to the mirror, not the client-facing WireGuard
-  // framing on dataplaneChannel.
-  private InetSocketAddress mirrorAddress;
-  private final DatagramChannel networkChannel;
+  // Every data packet from the client is decrypted, forwarded verbatim to this plain (non-SNAP)
+  // address, and whatever comes back is re-encrypted and sent back to the client -- i.e. a real
+  // round trip through a "network" rather than a canned reply. Defaults to defaultEchoServer, an
+  // internally-managed MockEchoServer; relayTo() can point it at a different (still plain,
+  // non-SNAP) address instead. Uses its own channel since it speaks plain UDP to the remote
+  // server.
+  private InetSocketAddress remoteAddress;
+  private final DatagramChannel remoteChannel;
+  private final MockEchoServer defaultEchoServer;
 
   private MockSnapService(int httpPort, String expectedToken) throws IOException {
     SecureRandom rng = new SecureRandom();
@@ -176,21 +175,24 @@ public class MockSnapService implements AutoCloseable {
     dataplaneChannel.bind(new InetSocketAddress("127.0.0.1", 0));
     dataplaneAddress = (InetSocketAddress) dataplaneChannel.getLocalAddress();
 
-    networkChannel = DatagramChannel.open(StandardProtocolFamily.INET);
-    networkChannel.configureBlocking(false);
-    networkChannel.bind(new InetSocketAddress("127.0.0.1", 0));
+    remoteChannel = DatagramChannel.open(StandardProtocolFamily.INET);
+    remoteChannel.configureBlocking(false);
+    remoteChannel.bind(new InetSocketAddress("127.0.0.1", 0));
+
+    defaultEchoServer = MockEchoServer.start();
+    remoteAddress = defaultEchoServer.getAddress();
 
     httpServer = new SnapControlServer(httpPort, expectedToken);
   }
 
   /**
-   * Configures this mock to relay decrypted client data packets to a plain (non-SNAP) {@code
-   * mirrorAddress} instead of replying with the fixed {@link #ECHO_PAYLOAD}, and to re-encrypt
-   * whatever comes back from it before sending it on to the client. Must be called before the
-   * client sends any data packets (the handshake itself is unaffected).
+   * Points this mock's post-handshake data-packet relay at a plain (non-SNAP) {@code mirrorAddress}
+   * instead of its default internal {@link MockEchoServer}, re-encrypting whatever comes back from
+   * it before sending it on to the client. Must be called before the client sends any data packets
+   * (the handshake itself is unaffected).
    */
   public void relayTo(InetSocketAddress mirrorAddress) {
-    this.mirrorAddress = mirrorAddress;
+    this.remoteAddress = mirrorAddress;
   }
 
   public static MockSnapService start(String address) {
@@ -250,7 +252,7 @@ public class MockSnapService implements AutoCloseable {
               log.debug("Sent SNAP handshake response to {}", sender);
             }
           } else if (type == TYPE_DATA && serverSendKey != null) {
-            byte[] reply = mirrorAddress != null ? relayThroughMirror(packet) : buildEchoReply();
+            byte[] reply = relayToNetwork(packet);
             if (reply != null) {
               dataplaneChannel.send(ByteBuffer.wrap(reply), sender);
               log.debug("Sent SNAP data reply to {}", sender);
@@ -362,21 +364,13 @@ public class MockSnapService implements AutoCloseable {
   }
 
   /**
-   * Builds an encrypted WireGuard data packet carrying {@link #ECHO_PAYLOAD}, addressed back to the
-   * client from the most recently completed handshake.
-   */
-  private byte[] buildEchoReply() {
-    return buildDataReply(ECHO_PAYLOAD);
-  }
-
-  /**
    * Decrypts a data packet from the client, forwards the plaintext verbatim to {@link
-   * #mirrorAddress} over {@link #networkChannel}, waits (briefly) for its reply, and encrypts that
+   * #remoteAddress} over {@link #remoteChannel}, waits (briefly) for its reply, and encrypts that
    * reply for the client -- a real round trip through a plain, non-SNAP "network" rather than a
    * canned response. Returns {@code null} (no reply sent) on any crypto error or if the mirror
    * doesn't answer within the timeout.
    */
-  private byte[] relayThroughMirror(byte[] clientPacket) {
+  private byte[] relayToNetwork(byte[] clientPacket) {
     if (clientPacket.length < 16) {
       return null;
     }
@@ -390,10 +384,10 @@ public class MockSnapService implements AutoCloseable {
     try {
       byte[] plaintext =
           aeadOpen(serverRecvKey, counter, ciphertext, new byte[0], ciphertext.length - 16);
-      networkChannel.send(ByteBuffer.wrap(plaintext), mirrorAddress);
-      byte[] echoed = awaitMirrorReply(2000);
+      remoteChannel.send(ByteBuffer.wrap(plaintext), remoteAddress);
+      byte[] echoed = awaitReplyFromNetwork(2000);
       if (echoed == null) {
-        log.warn("MockSnapService: no reply from mirror {} within timeout", mirrorAddress);
+        log.warn("MockSnapService: no reply from mirror {} within timeout", remoteAddress);
         return null;
       }
       return buildDataReply(echoed);
@@ -401,17 +395,17 @@ public class MockSnapService implements AutoCloseable {
       log.error("MockSnapService: crypto error decrypting client packet for relay", e);
       return null;
     } catch (IOException e) {
-      log.error("MockSnapService: error relaying through mirror {}", mirrorAddress, e);
+      log.error("MockSnapService: error relaying through mirror {}", remoteAddress, e);
       return null;
     }
   }
 
-  private byte[] awaitMirrorReply(long timeoutMillis) throws IOException {
+  private byte[] awaitReplyFromNetwork(long timeoutMillis) throws IOException {
     ByteBuffer buf = ByteBuffer.allocate(65535);
     long deadline = System.currentTimeMillis() + timeoutMillis;
     while (System.currentTimeMillis() < deadline) {
       buf.clear();
-      InetSocketAddress from = (InetSocketAddress) networkChannel.receive(buf);
+      InetSocketAddress from = (InetSocketAddress) remoteChannel.receive(buf);
       if (from != null) {
         buf.flip();
         byte[] result = new byte[buf.remaining()];
@@ -468,10 +462,11 @@ public class MockSnapService implements AutoCloseable {
       log.warn("Error closing MockSnapService dataplane channel", e);
     }
     try {
-      networkChannel.close();
+      remoteChannel.close();
     } catch (IOException e) {
       log.warn("Error closing MockSnapService network channel", e);
     }
+    defaultEchoServer.close();
     if (dataplaneThread != null) {
       try {
         dataplaneThread.join(1000);

@@ -80,8 +80,9 @@ class SnapTunnelTest {
   void receivePacket_decryptsRealDataPacketFromDataPlane() throws IOException {
     // Coverage gap this closes: every other SnapTunnel test only ever sends (encrypt()) -- none
     // ever receives a real post-handshake WireGuard data packet, so decrypt() was never actually
-    // exercised. MockSnapService now echoes an encrypted reply after the handshake, which lets
-    // receivePacket() drive the real AEAD-decrypt path instead of just the handshake crypto.
+    // exercised. MockSnapService relays every data packet through an internal MockEchoServer by
+    // default (no relayTo() call needed), which lets receivePacket() drive the real AEAD-decrypt
+    // path on a genuine round trip instead of just the handshake crypto.
     SnapTunnel session =
         new SnapTunnel(
             null,
@@ -90,25 +91,26 @@ class SnapTunnelTest {
             null /* no HTTP control client needed for handshake */);
 
     // Triggers the handshake, then sends one data packet so the mock has a peer index to reply to.
-    session.sendPacket(new byte[] {1, 2, 3});
+    byte[] sent = {1, 2, 3};
+    session.sendPacket(sent);
 
-    // Wait for the mock's echo reply, then read and decrypt it.
+    // Wait for the mock's relayed reply, then read and decrypt it.
     session.awaitReadable(2000);
     ByteBuffer received = ByteBuffer.allocate(1024);
     InetSocketAddress from = session.receivePacket(received);
 
-    assertNotNull(from, "expected an echo reply from the mock SNAP dataplane");
+    assertNotNull(from, "expected a relayed reply from the mock SNAP dataplane");
     received.flip();
     byte[] payload = new byte[received.remaining()];
     received.get(payload);
-    assertArrayEquals(MockSnapService.ECHO_PAYLOAD, payload);
+    assertArrayEquals(sent, payload);
   }
 
   @Test
   void receivePacket_relaysThroughPlainMirrorServer() throws IOException {
-    // Unlike the canned-ECHO_PAYLOAD test above, this proves data genuinely round-trips through
-    // something else: the mock decrypts what the client sent, forwards the plaintext verbatim to
-    // a plain (non-SNAP) UDP mirror, and re-encrypts whatever the mirror sends back -- so the
+    // Unlike the default-echo test above, this proves the mock can be pointed at a *different*
+    // plain (non-SNAP) UDP mirror via relayTo(): the mock decrypts what the client sent, forwards
+    // the plaintext verbatim to that mirror, and re-encrypts whatever it sends back -- so the
     // bytes received here must match exactly what was sent, not a fixed constant.
     try (MockEchoServer mirror = MockEchoServer.start()) {
       mockSnapService.relayTo(mirror.getAddress());
