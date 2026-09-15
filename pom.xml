@@ -115,6 +115,20 @@
             <version>4.12.0</version>
         </dependency>
 
+        <!-- For testing real HTTPS/TLS access (self-signed certs + a TLS-capable mock server). -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp-tls</artifactId>
+            <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>mockwebserver</artifactId>
+            <version>4.12.0</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.grpc</groupId>
             <!-- TODO We are not using the (netty) shaded version because it causes problem with
@@ -148,6 +162,12 @@
             <artifactId>antlr4</artifactId>
             <!-- Last version that runs on Java 8 https://github.com/antlr/antlr4/releases/tag/4.10 -->
             <version>4.9.3</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.85.2</version>
         </dependency>
     </dependencies>
 

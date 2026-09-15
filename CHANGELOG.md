@@ -10,6 +10,23 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
+- FIx PathSelectorWithRefreshTest.autoRefresh(): The test makes no sense, the PathSelector
+  is not triggered by paths that expire "soon". We should simply test (counter in PP)
+   the refresh is called with 1 second. No need to create an expired path.
+- Add ScionUtil.parseScionAddress("64-2:0:9,[123.123.123.123]);
+  - Removed ScionUtil.parseInetAddress
+- Performance TODO: When connected: buffer complete SCION header i.o. building it
+  every time. Add cached header to "Path" for send()?
+- Support Netty?!?
+- Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
+- Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
+- Use Builder for LocalAS?
+- Create Builder for ScionService or add SNP props to Channel.Builder???
+- Fix flaky MacOS build
+  [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
+- Report flaky discovery SNAP
+- Check: SNAP ports are blocked if session has ended?
+
 - After release: update exercise for PathSelector
 
 - Later: ScionService API:
@@ -163,6 +180,10 @@ TODO
 
 ## 0.8.0 - WIP
 
+- SNAP support
+  [#271](https://github.com/scionproto-contrib/jpan/pull/271)
+### TODO
+- Remove/check log.debug() messages
 ### Added
 
 - PathSelector API.

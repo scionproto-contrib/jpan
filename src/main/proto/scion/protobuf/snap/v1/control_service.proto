@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.snap";
+
+package scion.snap.v1;
+
+service SnapControl {
+  // Returns the SNAP data plane details for the client to connect to.
+  rpc GetSnapDataPlaneAddress(GetSnapDataPlaneAddressRequest) returns (GetSnapDataPlaneAddressResponse) {}
+
+  // Registers a static identity for a snaptun connection.
+  rpc RegisterSnapTunIdentity(RegisterSnapTunIdentityRequest) returns (RegisterSnapTunIdentityResponse) {}
+}
+
+// Request to get the SNAP data plane details for the client to connect to.
+message GetSnapDataPlaneAddressRequest {}
+
+// SNAP data plane response message.
+message GetSnapDataPlaneAddressResponse {
+  // The UDP endpoint (host:port) of the SNAP data plane.
+  // The host can either be an IP address or a hostname.
+  string address = 1;
+
+  // The URL of the SNAPtun control plane API. This can be the same
+  // as the snap control plane URL.
+  optional string snap_tun_control_address = 2;
+
+  // The static identity of the snaptun-ng server.
+  optional bytes snap_static_x25519 = 3;
+}
+
+// Request to register a static identity for a snaptun connection.
+message RegisterSnapTunIdentityRequest {
+  // The static public key of the client.
+  bytes initiator_static_x25519 = 1;
+  // The clients pre shared key. This can be either 32 bytes or all 0 bytes.
+  bytes psk_share = 2;
+}
+
+// Snap register identity response.
+message RegisterSnapTunIdentityResponse {
+  // The servers pre shared key. This can be either 32 bytes or all 0 bytes.
+  bytes psk_share = 1;
+}

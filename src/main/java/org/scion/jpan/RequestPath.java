@@ -40,8 +40,11 @@ public class RequestPath extends Path {
     InetSocketAddress firstHop;
     if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
-    } else {
+    } else if (!localAS.getBorderRouters().isEmpty()) {
       firstHop = localAS.getBorderRouterAddress((int) metadata.getInterfaces().get(0).getId());
+    } else {
+      // This must be a SNAP situation. THe first hop depends on the SNAP DP node that a socket uses
+      firstHop = null;
     }
     return create(metadata, dstIP, dstPort, firstHop);
   }

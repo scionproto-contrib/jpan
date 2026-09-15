@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -380,6 +381,52 @@ class ScionTest {
       }
     } finally {
       MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_snap() throws Exception {
+    // A SNAP-mode channel should not respect the port range: the ports are only useful when
+    // communicating directly with a border router, and assigning a fixed port can actually cause
+    // problems because SNAP takes a long time to free up previously used ports -- see
+    // AbstractScionChannel.ensureBound()'s "snapUnderlay == null && ports.hasPortRange()" guard.
+    // Note: LocalAsFromPathService's SNAP branch always reports DispatcherPortRange.createAll()
+    // regardless of the real topology's configured range, so there is no longer a real narrow
+    // range to prove SNAP avoids -- this just confirms a SNAP channel binds to an ephemeral port
+    // rather than a suspicious, dispatcher-range-looking one such as 31000.
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
+        MockEchoServer mirror = MockEchoServer.start()) {
+      nw.getSnapService().relayTo(mirror.getAddress());
+
+      // Same AS as the local client (ASff00_0_112): PathBuilder returns an empty raw path for
+      // same-AS traffic, which is required for the round-trip verification below to work.
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+
+      try (ScionDatagramChannel channel =
+          ScionDatagramChannel.newBuilder().service(service).open()) {
+        byte[] sent = {1, 2, 3};
+        channel.send(ByteBuffer.wrap(sent), path);
+        assertNotEquals(31000, channel.getLocalAddress().getPort());
+
+        // Verify send() actually delivered the data, not just that it didn't throw: the mirror
+        // server (a plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
+        ByteBuffer recvBuf = ByteBuffer.allocate(1024);
+        ScionPathAddress from = null;
+        for (int i = 0; i < 150 && from == null; i++) {
+          from = channel.receive(recvBuf);
+          if (from == null) {
+            Thread.sleep(20);
+          }
+        }
+        assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");
+        recvBuf.flip();
+        byte[] received = new byte[recvBuf.remaining()];
+        recvBuf.get(received);
+        assertArrayEquals(sent, received);
+      }
     }
   }
 

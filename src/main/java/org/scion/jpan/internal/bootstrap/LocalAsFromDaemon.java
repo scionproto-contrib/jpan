@@ -41,6 +41,7 @@ public class LocalAsFromDaemon {
         null,
         null,
         readBorderRouterAddresses(daemonService),
+        Collections.emptyList(),
         trcStore);
   }
 

@@ -14,6 +14,7 @@
 
 package org.scion.jpan;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
@@ -24,9 +25,12 @@ import java.util.List;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
+import org.scion.jpan.internal.snap.SnapTunnel;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
+import org.scion.jpan.selectors.PathSelectorWithRefresh;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.MockNetwork;
 
@@ -43,6 +47,17 @@ public class PackageVisibilityHelper {
 
   public static ControlServiceGrpc getControlService(ScionService ss) {
     return ss.getControlServiceConnection();
+  }
+
+  /**
+   * The SNAP dataplane address {@code ss} resolved at construction time, or {@code null} if SNAP
+   * isn't enabled/resolved for it. Useful for asserting that two independently-constructed {@link
+   * ScionService} instances (e.g. via {@link org.scion.jpan.Scion#newServiceWithEndhostApi}) each
+   * resolved their own, distinct SNAP dataplane rather than accidentally sharing one.
+   */
+  public static InetSocketAddress getSnapDataPlaneAddress(ScionService ss) {
+    org.scion.jpan.internal.snap.SnapDataplaneDetails dp = ss.getSnapDataPlane();
+    return dp == null ? null : dp.getAddress();
   }
 
   public static List<PathMetadata> getPaths(ScionService ss, long srcIsdAs, long dstIsdAs) {
@@ -202,6 +217,36 @@ public class PackageVisibilityHelper {
   public static String getFirstHop(ScionService ss, PathMetadata path) {
     int id = (int) path.getInterfaces().get(0).getId();
     return IPHelper.toString(ss.getLocalAS().getBorderRouterAddress(id));
+  }
+
+  /**
+   * Creates a {@link ScionDatagramChannel} in SNAP mode, backed by the given {@link SnapTunnel},
+   * for unit-testing SNAP channel behavior without a real {@link ScionService}. The channel has no
+   * path selector/factory (both null), since neither is needed unless the caller sends via
+   * address-based resolution (as opposed to an explicit {@link Path}) -- an earlier version of this
+   * helper built a selector via {@link Scion#defaultService()}, which depends on live DNS/daemon
+   * resolution and made every test using it flaky/environment-dependent for no reason.
+   */
+  public static ScionDatagramChannel openSnapChannel(SnapTunnel tunnel) throws IOException {
+    return openSnapChannel(null, tunnel);
+  }
+
+  /**
+   * Like {@link #openSnapChannel(SnapTunnel)}, but attaches the given {@link ScionService} (a real
+   * path selector/factory is only built when {@code service} is non-null). Needed for tests that
+   * exercise address-based resolution (e.g. {@code send(ByteBuffer, SocketAddress)}), which
+   * requires a real selector. Pass {@code null} for the same lightweight, DNS/daemon-independent
+   * behavior as the single-argument overload.
+   */
+  public static ScionDatagramChannel openSnapChannel(ScionService service, SnapTunnel tunnel)
+      throws IOException {
+    SnapUnderlay snapUnderlay = SnapUnderlay.wrap(tunnel);
+    if (service == null) {
+      return new ScionDatagramChannel(null, null, null, null, snapUnderlay);
+    }
+    PathSelector selector = PathSelectorWithRefresh.create(service, PathPolicy.DEFAULT);
+    PathSelectorFactory factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
+    return new ScionDatagramChannel(service, null, selector, factory, snapUnderlay);
   }
 
   public abstract static class AbstractChannel extends AbstractScionChannel<AbstractChannel> {

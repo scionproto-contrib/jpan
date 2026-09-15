@@ -26,6 +26,7 @@ public class LocalAS {
   private final List<ServiceNode> controlServices;
   private final List<ServiceNode> discoveryServices;
   private final List<BorderRouter> borderRouters;
+  private final List<SnapControlNode> snapControlNodes;
   private final Map<Integer, BorderRouter> interfaceIDs;
   private final Set<Long> localIsdAs;
   private final boolean isCoreAs;
@@ -41,6 +42,7 @@ public class LocalAS {
       List<ServiceNode> controlServices,
       List<ServiceNode> discoveryServices,
       List<BorderRouter> borderRouters,
+      List<SnapControlNode> snapControlNodes,
       TrcStore trcStore) {
     this.localIsdAs = Collections.unmodifiableSet(localIsdAs);
     this.isCoreAs = isCoreAs;
@@ -49,6 +51,7 @@ public class LocalAS {
     this.controlServices = controlServices;
     this.discoveryServices = discoveryServices;
     this.borderRouters = borderRouters;
+    this.snapControlNodes = snapControlNodes;
     this.interfaceIDs = initInterfaceIDs(borderRouters);
     this.trcStore = trcStore;
   }
@@ -94,14 +97,12 @@ public class LocalAS {
     return localIsdAs;
   }
 
-  public String getBorderRouterAddressString(int interfaceId) {
-    BorderRouter br = interfaceIDs.get(interfaceId);
-    if (br == null) {
-      throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
-    }
-    return br.internalAddressString;
-  }
-
+  /**
+   * Address of the first hop border router for a given interface ID.
+   *
+   * @param interfaceId border router interface ID
+   * @return The address of the border router
+   */
   public InetSocketAddress getBorderRouterAddress(int interfaceId) {
     BorderRouter br = interfaceIDs.get(interfaceId);
     if (br == null) {
@@ -146,13 +147,15 @@ public class LocalAS {
     return Collections.unmodifiableList(borderRouters);
   }
 
+  public List<SnapControlNode> getSnapControlNodes() {
+    return Collections.unmodifiableList(snapControlNodes);
+  }
+
   public static class BorderRouter {
-    private final String internalAddressString;
     private final InetSocketAddress internalAddress;
     private final List<Integer> interfaces = new ArrayList<>();
 
     BorderRouter(String addr) {
-      this.internalAddressString = addr;
       this.internalAddress = IPHelper.toInetSocketAddress(addr);
     }
 
@@ -185,6 +188,24 @@ public class LocalAS {
     @Override
     public String toString() {
       return "{" + "name='" + name + '\'' + ", ipString='" + ipString + '\'' + '}';
+    }
+  }
+
+  public static class SnapControlNode {
+    private final String address;
+    private final List<Long> isdAses;
+
+    SnapControlNode(String address, List<Long> isdAses) {
+      this.address = address;
+      this.isdAses = isdAses == null ? Collections.emptyList() : isdAses;
+    }
+
+    public String getAddress() {
+      return address;
+    }
+
+    public List<Long> getIsdAses() {
+      return Collections.unmodifiableList(isdAses);
     }
   }
 
