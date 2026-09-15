@@ -35,15 +35,15 @@ import org.scion.jpan.testutil.MockSnapService;
 
 /**
  * Covers two independent, genuinely concurrent SNAP tunnels -- each backed by its own {@link
- * MockSnapService} and its own, independently-constructed {@link
- * org.scion.jpan.ScionService} (via {@link Scion#newServiceWithEndhostApi}) -- being handshaked
- * and used at the same time from two separate {@link ScionDatagramChannel}s in the same process.
- * This guards against per-tunnel state (crypto session, assigned tunnel address, resolved SNAP
- * dataplane) accidentally leaking across independent SNAP channels.
+ * MockSnapService} and its own, independently-constructed {@link org.scion.jpan.ScionService} (via
+ * {@link Scion#newServiceWithEndhostApi}) -- being handshaked and used at the same time from two
+ * separate {@link ScionDatagramChannel}s in the same process. This guards against per-tunnel state
+ * (crypto session, assigned tunnel address, resolved SNAP dataplane) accidentally leaking across
+ * independent SNAP channels.
  *
  * <p>SNAP is enabled purely via system properties here, not by constructing a {@code SnapTunnel}
- * directly. That does mean the two {@link org.scion.jpan.ScionService} instances can't be
- * {@link Scion#defaultService()} (a single, process-wide singleton, so it cannot represent two
+ * directly. That does mean the two {@link org.scion.jpan.ScionService} instances can't be {@link
+ * Scion#defaultService()} (a single, process-wide singleton, so it cannot represent two
  * independently-configured SNAP dataplanes at once) -- {@link Scion#newServiceWithEndhostApi}
  * exists specifically to build extra, independent instances like this one for exactly this case.
  */
@@ -63,8 +63,7 @@ class SnapScionDatagramChannelMultiServiceTest {
       assertNotEquals(snapA.getDataplaneAddress(), snapB.getDataplaneAddress());
 
       System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
-      String pathServiceAddress =
-          System.getProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
+      String pathServiceAddress = System.getProperty(Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE);
 
       // Each newServiceWithEndhostApi() call resolves its SNAP dataplane immediately, from
       // whatever org.scion.snap.controlPlane points at *at that moment* -- unlike
@@ -73,15 +72,16 @@ class SnapScionDatagramChannelMultiServiceTest {
       System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, snapA.getControlUrl());
       try (Scion.CloseableService serviceA = Scion.newServiceWithEndhostApi(pathServiceAddress)) {
         System.setProperty(Constants.PROPERTY_SNAP_CONTROL_PLANE, snapB.getControlUrl());
-        try (Scion.CloseableService serviceB =
-            Scion.newServiceWithEndhostApi(pathServiceAddress)) {
+        try (Scion.CloseableService serviceB = Scion.newServiceWithEndhostApi(pathServiceAddress)) {
 
           // Each service resolved its own dataplane -- not each other's, and not a shared/stale
           // one -- proving no property-race between the two sequential constructions above.
           assertEquals(
-              snapA.getDataplaneAddress(), PackageVisibilityHelper.getSnapDataPlaneAddress(serviceA));
+              snapA.getDataplaneAddress(),
+              PackageVisibilityHelper.getSnapDataPlaneAddress(serviceA));
           assertEquals(
-              snapB.getDataplaneAddress(), PackageVisibilityHelper.getSnapDataPlaneAddress(serviceB));
+              snapB.getDataplaneAddress(),
+              PackageVisibilityHelper.getSnapDataPlaneAddress(serviceB));
           assertNotEquals(
               PackageVisibilityHelper.getSnapDataPlaneAddress(serviceA),
               PackageVisibilityHelper.getSnapDataPlaneAddress(serviceB));
