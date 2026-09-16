@@ -17,13 +17,18 @@ package org.scion.jpan.internal.snap;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -135,5 +140,37 @@ class SnapTunnelTest {
       received.get(payload);
       assertArrayEquals(sent, payload);
     }
+  }
+
+  @Test
+  void ensureConnected_ipv6BoundChannel_failsFastInsteadOfTimingOut() {
+    // An explicit INET6 channel is guaranteed to end up bound to an IPv6 local address (unlike a
+    // family-unspecified DatagramChannel.open(), whose resolved family is platform-dependent), while
+    // still being able to send() to the mock's IPv4 dataplane address without throwing -- JDK INET6
+    // channels are dual-stack-capable. This deterministically reproduces the address-family mismatch
+    // that a caller-supplied channel could previously trigger, without the flakiness of relying on a
+    // particular platform's default channel family.
+    DatagramChannel ipv6Channel;
+    try {
+      ipv6Channel = DatagramChannel.open(StandardProtocolFamily.INET6);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    SnapTunnel session =
+        new SnapTunnel(
+            ipv6Channel,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null);
+
+    long startNanos = System.nanoTime();
+    ScionRuntimeException ex =
+        assertThrows(ScionRuntimeException.class, () -> session.sendPacket(new byte[] {1, 2, 3}));
+    long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+    assertTrue(ex.getMessage().contains("IPv4"), "unexpected message: " + ex.getMessage());
+    // Before the fix, this failure only ever surfaced after the ~5s handshake-response timeout
+    // (the response from the IPv4-only mock never matches on an IPv6-bound socket).
+    assertTrue(elapsedMs < 2000, "expected a fast failure, took " + elapsedMs + "ms");
   }
 }

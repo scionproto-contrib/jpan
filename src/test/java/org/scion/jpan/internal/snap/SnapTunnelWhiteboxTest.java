@@ -26,6 +26,9 @@ import java.nio.channels.DatagramChannel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.EnabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -143,6 +146,7 @@ class SnapTunnelWhiteboxTest {
   }
 
   @Test
+  @DisabledOnOs({OS.MAC, OS.WINDOWS})
   void receivePacket_ignoresPacketFromUnexpectedSource() throws Exception {
     SnapTunnel session =
         new SnapTunnel(
@@ -170,6 +174,7 @@ class SnapTunnelWhiteboxTest {
   }
 
   @Test
+  @DisabledOnOs({OS.MAC, OS.WINDOWS})
   void receivePacket_skipsUndecryptableGarbageFromRealDataplaneAddress() throws Exception {
     SnapTunnel session =
         new SnapTunnel(

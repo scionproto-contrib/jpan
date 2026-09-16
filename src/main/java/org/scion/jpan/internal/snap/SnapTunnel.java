@@ -15,6 +15,7 @@
 package org.scion.jpan.internal.snap;
 
 import java.io.IOException;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
@@ -284,6 +285,18 @@ public class SnapTunnel {
       }
 
       underlay.send(ByteBuffer.wrap(initPacket), firstHop);
+
+      // The send above implicitly binds an unbound channel -- this is the first point where a
+      // caller-supplied (or platform-default-opened) channel's actually resolved address family is
+      // knowable, since a family-unspecified DatagramChannel does not reliably expose what it will
+      // bind to beforehand (this is platform/JVM-dependent, see SnapUnderlay.tryCreate()). SNAP's
+      // dataplane is IPv4-only, so failing fast here with a clear error beats silently waiting out
+      // the receive-timeout below for a handshake response that an IPv6-bound socket will never see.
+      InetSocketAddress boundAddress = (InetSocketAddress) underlay.getLocalAddress();
+      if (boundAddress.getAddress() instanceof Inet6Address) {
+        throw new ScionRuntimeException(
+            "SNAP requires an IPv4 socket, but the underlay channel is bound to " + boundAddress);
+      }
 
       ByteBuffer recv = ByteBuffer.allocate(4096);
       WireGuardPacket.HandshakeResponse response;
