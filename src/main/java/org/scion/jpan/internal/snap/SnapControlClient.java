@@ -86,7 +86,7 @@ public class SnapControlClient {
     return host.indexOf(':') >= 0 || IPV4_LITERAL.matcher(host).matches();
   }
 
-  public SnapDataplaneDetails getDataPlaneAddress() {
+  public SnapDataplaneDetails getDataPlaneAddress(boolean failOnError) {
     try {
       byte[] responseBytes =
           post(
@@ -107,7 +107,11 @@ public class SnapControlClient {
       return new SnapDataplaneDetails(
           (InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
     } catch (IOException e) {
-      throw new ScionRuntimeException("SNAP GetSnapDataPlaneAddress failed", e);
+      LOG.error("SNAP GetSnapDataPlaneAddress failed: {}", e.getMessage());
+      if (failOnError) {
+        throw new ScionRuntimeException("SNAP GetSnapDataPlaneAddress failed", e);
+      }
+      return null;
     }
   }
 

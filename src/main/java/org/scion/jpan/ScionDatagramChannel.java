@@ -94,7 +94,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    * @throws IOException if an error occurs
    */
   public static ScionDatagramChannel open(ScionService service) throws IOException {
-    return open(service, java.nio.channels.DatagramChannel.open(StandardProtocolFamily.INET));
+    return open(service, null);
   }
 
   public static ScionDatagramChannel open(

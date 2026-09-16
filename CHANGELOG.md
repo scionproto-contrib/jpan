@@ -183,7 +183,7 @@ TODO
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 ### TODO
-- Remove/check log.debug() messages
+- Fix AbstractChannel.configureBlocking
 ### Added
 
 - PathSelector API.

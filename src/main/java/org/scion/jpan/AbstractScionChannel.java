@@ -37,9 +37,12 @@ import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.selectors.PathSelectorFixed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(AbstractScionChannel.class.getName());
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
   private ByteBuffer bufferReceive;
@@ -244,7 +247,8 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   /**
    * Returns the local address. Note that this may change as the path changes, e.g. if we connect to
-   * a new border router on a different network interface.
+   * a new border router on a different network interface. This will always return the local
+   * interface address, not a potential publicly visible SNAP or NAT address.
    *
    * @see DatagramChannel#getLocalAddress()
    * @return The local address.

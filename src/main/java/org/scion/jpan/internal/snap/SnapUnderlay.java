@@ -47,8 +47,14 @@ public final class SnapUnderlay {
       return null;
     }
     if (dp == null || dp.getSnapStaticX25519() == null) {
-      throw new ScionRuntimeException(
-          "SNAP mode requested but no SNAP dataplane/static key available");
+      if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
+        throw new ScionRuntimeException(
+            "SNAP mode requested but no SNAP dataplane/static key available");
+      }
+      // mode=auto: no SNAP dataplane was resolved (see
+      // ScionService.initializeSnapDataPlaneIfEnabled),
+      // fall back to a plain UDP underlay instead of failing channel construction.
+      return null;
     }
 
     // Snap requires an IPv4 ({@link StandardProtocolFamily#INET}) channel: the SNAP dataplane is

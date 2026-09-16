@@ -156,17 +156,22 @@ public class ScionService {
     if (!Config.isUnderlaySnapAllowed()) {
       return null;
     }
+    boolean isSnapRequired = Config.getUnderlayMode() == Config.UnderlayMode.SNAP;
     SnapControlClient snapControlClient = SnapControlClient.create(localAS);
     if (snapControlClient == null) {
-      throw new ScionRuntimeException(
-          "SNAP mode is enabled but no SNAP control endpoint is available");
+      if (isSnapRequired) {
+        throw new ScionRuntimeException("No SNAP control endpoint is available");
+      }
+      return null;
     }
-    SnapDataplaneDetails dataPlane = snapControlClient.getDataPlaneAddress();
-    LOG.info(
-        "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
-        snapControlClient.getUrl(),
-        dataPlane.getAddress(),
-        dataPlane.getSnapTunControlAddress());
+    SnapDataplaneDetails dataPlane = snapControlClient.getDataPlaneAddress(isSnapRequired);
+    if (dataPlane != null) {
+      LOG.info(
+          "SNAP mode enabled: control={} dataplane={} snap_tun_control={}",
+          snapControlClient.getUrl(),
+          dataPlane.getAddress(),
+          dataPlane.getSnapTunControlAddress());
+    }
     return dataPlane;
   }
 
