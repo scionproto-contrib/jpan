@@ -202,34 +202,7 @@ public class ScionService {
         String authKey = Config.getSnapAuthKey();
         String authService = Config.getSnapAuthenticationService();
         if (authService != null && authKey != null) {
-          // TODO overwrite API key char[] and reset property?
-          AAClient.Result result = AAClient.fetchAll(authKey, authService);
-          System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
-          String pathServices = null;
-          if (result.endhostApiDiscoveryUrl != null) {
-            String discoveryEndpoint = result.endhostApiDiscoveryUrl;
-            List<String> candidates =
-                EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
-            pathServices = String.join(";", candidates);
-          }
-          if (pathServices == null || pathServices.isEmpty()) {
-            pathServices = Config.getPathService();
-          }
-          if (pathServices == null || pathServices.isEmpty()) {
-            String disco = Config.getSnapPathServiceDiscovery();
-            if (disco != null) {
-              List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(disco);
-              if (candidates.isEmpty()) {
-                throw new ScionRuntimeException(
-                    "Endhost API discovery returned no candidates: " + disco);
-              }
-              pathServices = String.join(";", candidates);
-            }
-          }
-          if (pathServices == null || pathServices.isEmpty()) {
-            throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
-          }
-          defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, ScionService::new);
+          defaultService = serviceFromSnapAuth(authKey, authService);
           return defaultService;
         }
       }
@@ -286,6 +259,38 @@ public class ScionService {
       }
       throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
     }
+  }
+
+  private static ScionService serviceFromSnapAuth(String authKey, String authService) {
+    // TODO overwrite API key char[] and reset property?
+    AAClient.Result result = AAClient.fetchAll(authKey, authService);
+    System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
+    String pathServices = null;
+    if (result.endhostApiDiscoveryUrl != null) {
+      String discoveryEndpoint = result.endhostApiDiscoveryUrl;
+      List<String> candidates =
+              EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
+      pathServices = String.join(";", candidates);
+    }
+    if (pathServices == null || pathServices.isEmpty()) {
+      pathServices = Config.getPathService();
+    }
+    if (pathServices == null || pathServices.isEmpty()) {
+      String disco = Config.getSnapPathServiceDiscovery();
+      if (disco != null) {
+        List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(disco);
+        if (candidates.isEmpty()) {
+          throw new ScionRuntimeException(
+                  "Endhost API discovery returned no candidates: " + disco);
+        }
+        pathServices = String.join(";", candidates);
+      }
+    }
+    if (pathServices == null || pathServices.isEmpty()) {
+      throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
+    }
+    defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, ScionService::new);
+    return defaultService;
   }
 
   public static void closeDefault() {

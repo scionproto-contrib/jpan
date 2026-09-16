@@ -184,6 +184,11 @@ TODO
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 ### TODO
 - Fix AbstractChannel.configureBlocking
+- Fix tons of: "Not sending SNAP auth token to insecure (non-https)"
+- This is confoluted in ScionService: FIrst we check SNAP-auth services, then
+  in the initializer we create localAS, then we initialize SNAP again....?
+  At this point, is it still feasible that SNAP fails and we resort to non-SNAP?
+  Should we use BOOTSTRAP_SNAP as flag to indicate that SNAP is required?
 ### Added
 
 - PathSelector API.
