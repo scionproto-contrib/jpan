@@ -147,6 +147,11 @@ public class SnapTunnel {
   private long establishedAtNanos;
   private InetSocketAddress localTunnelAddress;
 
+  // Emulated blocking mode for receivePacket() -- see configureBlocking(). The real underlay
+  // channel always stays non-blocking at the OS/NIO level; this only controls whether
+  // receivePacket() waits (via the selector) instead of returning null immediately.
+  private volatile boolean blocking;
+
   /**
    * @param underlay The real channel to carry SNAP/WireGuard traffic. If non-null, it is adopted
    *     as-is. If null (e.g. in tests that don't have a real outer channel to share), a fresh one
@@ -171,6 +176,21 @@ public class SnapTunnel {
     this.firstHop = firstHop;
     this.peerStatic = peerStatic;
     this.snapControlClient = snapControlClient;
+  }
+
+  /**
+   * Configures whether {@link #receivePacket} blocks (without busy-polling, via the internal
+   * selector) until data is available, or returns {@code null} immediately when none is -- mirrors
+   * {@link DatagramChannel#configureBlocking}. The real underlay channel itself always stays
+   * non-blocking at the OS/NIO level (the handshake logic and selector registration depend on
+   * that); "blocking" is emulated purely at this level.
+   */
+  public void configureBlocking(boolean block) {
+    this.blocking = block;
+  }
+
+  public boolean isBlocking() {
+    return blocking;
   }
 
   /**
@@ -430,7 +450,14 @@ public class SnapTunnel {
     return sent > 0 ? scionPacket.length : sent;
   }
 
-  public synchronized InetSocketAddress receivePacket(ByteBuffer buffer) throws IOException {
+  // Deliberately not `synchronized`: ensureConnected() and decrypt() below already synchronize on
+  // this object for the state they mutate, but this method itself must not hold that monitor for
+  // its whole duration -- in blocking mode (see configureBlocking()) it can wait indefinitely, and
+  // holding the monitor while doing so would block a concurrent sendPacket() call on another
+  // thread for just as long. The underlying DatagramChannel supports one concurrent reader and one
+  // concurrent writer, so a dedicated receive thread and send thread are meant to be able to run
+  // independently, exactly like a plain blocking DatagramChannel.
+  public InetSocketAddress receivePacket(ByteBuffer buffer) throws IOException {
     ensureConnected();
     ByteBuffer underlayBuf = ByteBuffer.allocate(65535);
     while (true) {
@@ -443,7 +470,14 @@ public class SnapTunnel {
             firstHop);
       }
       if (srcAddress == null) {
-        return null;
+        if (!blocking) {
+          return null;
+        }
+        // Waits (without busy-polling) until data may be available. If close() runs concurrently,
+        // the selector wakes immediately and the next underlay.receive() call below throws
+        // ClosedChannelException, propagating naturally instead of looping forever.
+        awaitReadable(Long.MAX_VALUE);
+        continue;
       }
       if (!firstHop.equals(srcAddress)) {
         log.debug("SNAP receivePacket: ignoring packet from unexpected source {}", srcAddress);

@@ -16,6 +16,7 @@ package org.scion.jpan.internal.snap;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -24,7 +25,13 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.StandardProtocolFamily;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -200,5 +207,104 @@ class SnapTunnelTest {
     // Before the fix, this failure only ever surfaced after the ~5s handshake-response timeout
     // (the response from the IPv4-only mock never matches on an IPv6-bound socket).
     assertTrue(elapsedMs < 2000, "expected a fast failure, took " + elapsedMs + "ms");
+  }
+
+  @Test
+  void receivePacket_blockingMode_waitsForDataInsteadOfReturningNull() throws Exception {
+    SnapTunnel session =
+        new SnapTunnel(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null);
+    session.configureBlocking(true);
+    assertTrue(session.isBlocking());
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      // Nothing has been sent yet, so this call must block (not return null) until data arrives.
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+
+      // Give the background thread a moment to actually enter the blocking wait before triggering
+      // the handshake + send (which the mock echoes back) from this thread.
+      Thread.sleep(100);
+      byte[] sent = {7, 7, 7};
+      session.sendPacket(sent);
+
+      InetSocketAddress from = future.get(5, TimeUnit.SECONDS);
+      assertNotNull(from, "expected the blocked receivePacket() to unblock with the echoed reply");
+      buffer.flip();
+      byte[] received = new byte[buffer.remaining()];
+      buffer.get(received);
+      assertArrayEquals(sent, received);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  void receivePacket_blockingMode_doesNotBlockConcurrentSendPacket() throws Exception {
+    // Regression guard for the concurrency hazard a naively-blocking receivePacket() would
+    // introduce: receivePacket() must not be `synchronized` for its whole (potentially indefinite)
+    // duration, or a blocked reader thread would starve a concurrent writer thread indefinitely --
+    // exactly the thing a real (blocking) DatagramChannel does not do.
+    SnapTunnel session =
+        new SnapTunnel(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null);
+    session.configureBlocking(true);
+    session.ensureConnected();
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+      Thread.sleep(100); // let it actually enter the blocking wait
+
+      long startNanos = System.nanoTime();
+      session.sendPacket(new byte[] {4, 5, 6});
+      long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+      assertTrue(
+          elapsedMs < 1000,
+          "sendPacket() was blocked by a concurrent blocking receivePacket(): took "
+              + elapsedMs
+              + "ms");
+
+      // The blocked receive should also unblock once the mock echoes the sent packet back.
+      InetSocketAddress from = future.get(5, TimeUnit.SECONDS);
+      assertNotNull(from);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  void receivePacket_blockingMode_closeUnblocksImmediately() throws Exception {
+    SnapTunnel session =
+        new SnapTunnel(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null);
+    session.configureBlocking(true);
+    session.ensureConnected(); // establish first so the background call goes straight into the wait
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+      Thread.sleep(100); // let the background thread actually enter the blocking wait
+
+      session.close();
+
+      ExecutionException ex =
+          assertThrows(ExecutionException.class, () -> future.get(5, TimeUnit.SECONDS));
+      assertInstanceOf(ClosedChannelException.class, ex.getCause());
+    } finally {
+      pool.shutdownNow();
+    }
   }
 }

@@ -185,7 +185,8 @@ TODO
 ### TODO
 - Fix AbstractChannel.configureBlocking
 - Fix tons of: "Not sending SNAP auth token to insecure (non-https)"
-- Ask to make tests and (java)docs more concise. 
+- Ask to make tests and (java)docs more concise.
+- Create whitebox test for untested branches in SnapControlClient
 ### Added
 
 - PathSelector API.

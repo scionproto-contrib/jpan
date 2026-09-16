@@ -37,12 +37,9 @@ import org.scion.jpan.internal.util.Config;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.selectors.PathSelectorFixed;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implements Closeable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(AbstractScionChannel.class.getName());
   protected static final int DEFAULT_BUFFER_SIZE = 2000;
   private final java.nio.channels.DatagramChannel channel;
   private ByteBuffer bufferReceive;
@@ -103,14 +100,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   protected void configureBlocking(boolean block) throws IOException {
     synchronized (stateLock) {
       if (snapUnderlay != null) {
-        // SnapUnderlay's send/receive loops rely on the channel staying non-blocking; ignore
-        // requests to change it rather than silently break them.
-        // TODO SNAP
-        if (block) {
-          LOG.warn(
-              "Ignoring configureBlocking(true) on a SNAP-backed channel; "
-                  + "the channel remains non-blocking.");
-        }
+        // The real transport channel must stay non-blocking at the OS/NIO level regardless (SNAP's
+        // handshake logic and selector registration depend on that) -- SnapUnderlay emulates
+        // blocking mode itself instead.
+        snapUnderlay.configureBlocking(block);
         return;
       }
       channel.configureBlocking(block);
@@ -119,6 +112,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   public boolean isBlocking() {
     synchronized (stateLock) {
+      if (snapUnderlay != null) {
+        return snapUnderlay.isBlocking();
+      }
       return channel.isBlocking();
     }
   }

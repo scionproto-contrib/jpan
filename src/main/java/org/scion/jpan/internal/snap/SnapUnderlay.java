@@ -117,6 +117,15 @@ public final class SnapUnderlay {
     return tunnel.receivePacket(buffer);
   }
 
+  /** @see SnapTunnel#configureBlocking(boolean) */
+  public void configureBlocking(boolean block) {
+    tunnel.configureBlocking(block);
+  }
+
+  public boolean isBlocking() {
+    return tunnel.isBlocking();
+  }
+
   /** Ensures the handshake has completed and returns the SNAP-assigned source address. */
   public InetSocketAddress ensureConnectedSourceAddress() {
     tunnel.ensureConnected();
