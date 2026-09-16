@@ -143,12 +143,40 @@ class SnapTunnelTest {
   }
 
   @Test
+  void receivePacket_payloadLargerThanBuffer_throwsSnapPacketTooLargeException()
+      throws IOException {
+    // Unlike DatagramChannel.receive()'s documented truncate-on-overflow contract, SNAP never
+    // fragments a packet across the tunnel, so there is no usable partial result to truncate to --
+    // receivePacket() must fail clearly instead of throwing an unchecked BufferOverflowException.
+    SnapTunnel session =
+        new SnapTunnel(
+            null,
+            mockSnapService.getDataplaneAddress(),
+            mockSnapService.getStaticPublicKey(),
+            null);
+
+    byte[] sent = new byte[100]; // the default echo relays back exactly these 100 bytes
+    session.sendPacket(sent);
+    session.awaitReadable(2000);
+
+    ByteBuffer tooSmall = ByteBuffer.allocate(50);
+    ScionRuntimeException ex =
+        assertThrows(ScionRuntimeException.class, () -> session.receivePacket(tooSmall));
+    assertTrue(ex.getMessage().contains("100"), "unexpected message: " + ex.getMessage());
+    assertTrue(ex.getMessage().contains("50"), "unexpected message: " + ex.getMessage());
+    assertEquals(0, tooSmall.position(), "buffer must be untouched when rejected");
+  }
+
+  @Test
   void ensureConnected_ipv6BoundChannel_failsFastInsteadOfTimingOut() {
     // An explicit INET6 channel is guaranteed to end up bound to an IPv6 local address (unlike a
-    // family-unspecified DatagramChannel.open(), whose resolved family is platform-dependent), while
+    // family-unspecified DatagramChannel.open(), whose resolved family is platform-dependent),
+    // while
     // still being able to send() to the mock's IPv4 dataplane address without throwing -- JDK INET6
-    // channels are dual-stack-capable. This deterministically reproduces the address-family mismatch
-    // that a caller-supplied channel could previously trigger, without the flakiness of relying on a
+    // channels are dual-stack-capable. This deterministically reproduces the address-family
+    // mismatch
+    // that a caller-supplied channel could previously trigger, without the flakiness of relying on
+    // a
     // particular platform's default channel family.
     DatagramChannel ipv6Channel;
     try {

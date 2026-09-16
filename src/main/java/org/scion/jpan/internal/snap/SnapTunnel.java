@@ -291,7 +291,8 @@ public class SnapTunnel {
       // knowable, since a family-unspecified DatagramChannel does not reliably expose what it will
       // bind to beforehand (this is platform/JVM-dependent, see SnapUnderlay.tryCreate()). SNAP's
       // dataplane is IPv4-only, so failing fast here with a clear error beats silently waiting out
-      // the receive-timeout below for a handshake response that an IPv6-bound socket will never see.
+      // the receive-timeout below for a handshake response that an IPv6-bound socket will never
+      // see.
       InetSocketAddress boundAddress = (InetSocketAddress) underlay.getLocalAddress();
       if (boundAddress.getAddress() instanceof Inet6Address) {
         throw new ScionRuntimeException(
@@ -460,6 +461,14 @@ public class SnapTunnel {
         continue;
       }
       log.debug("SNAP receivePacket: decrypted {} bytes of SCION payload", scion.length);
+      if (scion.length > buffer.remaining()) {
+        throw new ScionRuntimeException(
+            "SNAP packet ("
+                + scion.length
+                + " bytes) does not fit into the receive buffer ("
+                + buffer.remaining()
+                + " bytes remaining)");
+      }
       buffer.put(scion);
       return srcAddress;
     }
