@@ -67,7 +67,14 @@ public class PathServiceRpc {
               .addHeader("Content-type", "application/proto");
       String token = Config.getSnapAuthToken();
       if (token != null && !token.isEmpty()) {
-        requestBuilder.addHeader("Authorization", "Bearer " + token);
+        if (baseUrl.startsWith("https://")) {
+          requestBuilder.addHeader("Authorization", "Bearer " + token);
+        } else {
+          // Never send the SNAP bearer token over a plaintext connection: an on-path observer
+          // could capture and replay it against the control service.
+          LOG.warn(
+              "Not sending SNAP auth token to insecure (non-https) control service: {}", baseUrl);
+        }
       }
       Request request =
           requestBuilder
