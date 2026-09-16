@@ -35,16 +35,16 @@ public class RequestPath extends Path {
   }
 
   static RequestPath create(
-      PathMetadata metadata, InetAddress dstIP, int dstPort, LocalAS localAS) {
+      PathMetadata metadata, InetAddress dstIP, int dstPort, LocalAS localAS, boolean isSnap) {
     // path length 0 means "local AS"
     InetSocketAddress firstHop;
-    if (metadata.getRawPath().length == 0) {
-      firstHop = new InetSocketAddress(dstIP, dstPort);
-    } else if (!localAS.getBorderRouters().isEmpty()) {
-      firstHop = localAS.getBorderRouterAddress((int) metadata.getInterfaces().get(0).getId());
-    } else {
-      // This must be a SNAP situation. THe first hop depends on the SNAP DP node that a socket uses
+    if (isSnap) {
+      // With SNAP the first hop depends on the SNAP DP node that a socket uses
       firstHop = null;
+    } else if (metadata.getRawPath().length == 0) {
+      firstHop = new InetSocketAddress(dstIP, dstPort);
+    } else {
+      firstHop = localAS.getBorderRouterAddress((int) metadata.getInterfaces().get(0).getId());
     }
     return create(metadata, dstIP, dstPort, firstHop);
   }

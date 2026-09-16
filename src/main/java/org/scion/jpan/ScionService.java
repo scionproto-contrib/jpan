@@ -268,8 +268,7 @@ public class ScionService {
     String pathServices = null;
     if (result.endhostApiDiscoveryUrl != null) {
       String discoveryEndpoint = result.endhostApiDiscoveryUrl;
-      List<String> candidates =
-              EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
+      List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
       pathServices = String.join(";", candidates);
     }
     if (pathServices == null || pathServices.isEmpty()) {
@@ -280,8 +279,7 @@ public class ScionService {
       if (disco != null) {
         List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(disco);
         if (candidates.isEmpty()) {
-          throw new ScionRuntimeException(
-                  "Endhost API discovery returned no candidates: " + disco);
+          throw new ScionRuntimeException("Endhost API discovery returned no candidates: " + disco);
         }
         pathServices = String.join(";", candidates);
       }
@@ -455,8 +453,10 @@ public class ScionService {
   private List<Path> getPaths(ScionAddress dstAddress, int dstPort) {
     List<PathMetadata> paths = getPathList(dstAddress.getIsdAs());
     List<Path> scionPaths = new ArrayList<>(paths.size());
+    boolean isSnap = snapDataplaneDetails != null;
     for (PathMetadata meta : paths) {
-      scionPaths.add(RequestPath.create(meta, dstAddress.getInetAddress(), dstPort, localAS));
+      scionPaths.add(
+          RequestPath.create(meta, dstAddress.getInetAddress(), dstPort, localAS, isSnap));
     }
     return scionPaths;
   }

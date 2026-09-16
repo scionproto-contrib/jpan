@@ -105,6 +105,12 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       if (snapUnderlay != null) {
         // SnapUnderlay's send/receive loops rely on the channel staying non-blocking; ignore
         // requests to change it rather than silently break them.
+        // TODO SNAP
+        if (block) {
+          LOG.warn(
+              "Ignoring configureBlocking(true) on a SNAP-backed channel; "
+                  + "the channel remains non-blocking.");
+        }
         return;
       }
       channel.configureBlocking(block);

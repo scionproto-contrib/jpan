@@ -26,6 +26,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.DatagramChannel;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.bouncycastle.crypto.InvalidCipherTextException;
 import org.bouncycastle.crypto.digests.Blake2sDigest;
 import org.bouncycastle.crypto.macs.HMac;
@@ -166,6 +167,13 @@ public class MockSnapService implements AutoCloseable {
   private final DatagramChannel remoteChannel;
   private final MockEchoServer defaultEchoServer;
 
+  // Off by default: GetSnapDataPlaneAddress only advertises a snap_tun_control_address (pointing
+  // back at this same mock's HTTP server) when a test opts in via enableSnapTunControlAddress().
+  // Without it, SnapTunnel never builds a tun-control SnapControlClient and so never calls
+  // registerSnapTunIdentity() -- matching real deployments where that address is optional.
+  private volatile boolean advertiseSnapTunControlAddress;
+  private final AtomicInteger registerIdentityCallCount = new AtomicInteger();
+
   private MockSnapService(int httpPort, String expectedToken) throws IOException {
     SecureRandom rng = new SecureRandom();
     staticPrivate = new X25519PrivateKeyParameters(rng);
@@ -193,6 +201,22 @@ public class MockSnapService implements AutoCloseable {
    */
   public void relayTo(InetSocketAddress mirrorAddress) {
     this.remoteAddress = mirrorAddress;
+  }
+
+  /**
+   * Makes {@code GetSnapDataPlaneAddress} advertise this mock's own control URL as the {@code
+   * snap_tun_control_address}, so a client's {@link SnapTunnel} builds a tun-control {@code
+   * SnapControlClient} and calls {@code registerSnapTunIdentity()} against this same mock (handled
+   * by {@link #handleRegisterIdentity}) during its handshake. Must be called before the client
+   * resolves the dataplane address.
+   */
+  public void enableSnapTunControlAddress() {
+    this.advertiseSnapTunControlAddress = true;
+  }
+
+  /** Number of times a client has called {@code RegisterSnapTunIdentity} on this mock. */
+  public int getRegisterIdentityCallCount() {
+    return registerIdentityCallCount.get();
   }
 
   public static MockSnapService start(String address) {
@@ -526,11 +550,14 @@ public class MockSnapService implements AutoCloseable {
       }
       String dpAddress =
           dataplaneAddress.getAddress().getHostAddress() + ":" + dataplaneAddress.getPort();
-      ControlService.GetSnapDataPlaneAddressResponse response =
+      ControlService.GetSnapDataPlaneAddressResponse.Builder responseBuilder =
           ControlService.GetSnapDataPlaneAddressResponse.newBuilder()
               .setAddress(dpAddress)
-              .setSnapStaticX25519(ByteString.copyFrom(staticPublic))
-              .build();
+              .setSnapStaticX25519(ByteString.copyFrom(staticPublic));
+      if (advertiseSnapTunControlAddress) {
+        responseBuilder.setSnapTunControlAddress(getControlUrl());
+      }
+      ControlService.GetSnapDataPlaneAddressResponse response = responseBuilder.build();
       byte[] body = response.toByteArray();
       return newFixedLengthResponse(
           Response.Status.OK,
@@ -540,6 +567,7 @@ public class MockSnapService implements AutoCloseable {
     }
 
     private Response handleRegisterIdentity(Session session) {
+      registerIdentityCallCount.incrementAndGet();
       try {
         // Parse request but ignore the content for the mock.
         byte[] buf = new byte[4096];
