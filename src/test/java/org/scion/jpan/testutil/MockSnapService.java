@@ -462,6 +462,15 @@ public class MockSnapService implements AutoCloseable {
     return Arrays.copyOf(staticPublic, staticPublic.length);
   }
 
+  /**
+   * Test hook: sends {@code bytes} verbatim from this mock's dataplane socket, bypassing all normal
+   * handshake/echo logic. Lets a test simulate a malformed or otherwise undecryptable packet
+   * arriving from the real SNAP dataplane address (as opposed to an unexpected source).
+   */
+  public void sendRawFromDataplane(byte[] bytes, InetSocketAddress to) throws IOException {
+    dataplaneChannel.send(ByteBuffer.wrap(bytes), to);
+  }
+
   /** Returns the UDP address of the SNAP dataplane. */
   public InetSocketAddress getDataplaneAddress() {
     return dataplaneAddress;

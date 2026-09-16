@@ -234,7 +234,7 @@ public class SnapTunnel {
   public synchronized void ensureConnected() {
     if (established) {
       long ageSeconds = (System.nanoTime() - establishedAtNanos) / 1_000_000_000L;
-      if (ageSeconds < 120) {
+      if (ageSeconds < REKEY_AFTER_NANOS) {
         return;
       }
       log.info("SNAP session expired after {}s, re-handshaking", ageSeconds);
@@ -393,10 +393,6 @@ public class SnapTunnel {
       log.debug("SNAP decrypt: AEAD failure (counter={})", packet.counter);
       return null;
     }
-  }
-
-  public InetSocketAddress dataPlaneAddress() {
-    return firstHop;
   }
 
   public synchronized InetSocketAddress localTunnelAddress() {
@@ -558,7 +554,9 @@ public class SnapTunnel {
     return out;
   }
 
-  private static InetSocketAddress parseSnapSocketAddress(byte[] encoded) {
+  // Package-private (rather than private) so SnapTunnelWhiteboxTest can exercise its branches
+  // directly without needing to drive a full handshake for each one.
+  static InetSocketAddress parseSnapSocketAddress(byte[] encoded) {
     if (encoded.length != 20) {
       throw new IllegalArgumentException("SNAP socket address encoding must be 20 bytes");
     }
