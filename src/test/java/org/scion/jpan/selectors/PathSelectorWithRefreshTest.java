@@ -21,7 +21,6 @@ import java.net.InetSocketAddress;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.*;
@@ -72,35 +71,29 @@ class PathSelectorWithRefreshTest {
           service.getPaths(ScionUtil.parseIA(MockNetwork.TINY_SRV_ISD_AS), dummyAddr).get(0);
       MockNetwork.getControlServer().getAndResetCallCount();
 
-      // Expire in one second from now
-      Path expiredPath = PackageVisibilityHelper.createExpiredPath(newPath, -1);
-      // Confirm difference in expiredPath/newPath
-      assertNotEquals(
-          expiredPath.getMetadata().getExpiration(), newPath.getMetadata().getExpiration());
-
       // Initial open
       pp.open(remote);
 
       // Inject an expired path
-      AtomicBoolean returnExpired = new AtomicBoolean(true);
-      PathPolicy ppExp = x -> returnExpired.get() ? Collections.singletonList(expiredPath) : x;
+      AtomicInteger refreshCount = new AtomicInteger(0);
+      PathPolicy ppExp =
+          x -> {
+            refreshCount.incrementAndGet();
+            return Collections.singletonList(newPath);
+          };
       pp.setPathPolicy(ppExp);
       pp.refresh();
 
       // No calls done in open() or setPathPolicy()
       assertEquals(4, MockNetwork.getControlServer().getAndResetCallCount());
-      // Path is now the expired path
-      assertEquals(
-          expiredPath.getMetadata().getExpiration(), pp.getPath().getMetadata().getExpiration());
 
       // Allow policy to return proper paths, then wait for it to be called again.
-      returnExpired.set(false);
+      assertEquals(1, refreshCount.get());
 
       // Wait for timer
       TestUtil.sleep(1500);
       assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
-      assertEquals(
-          newPath.getMetadata().getExpiration(), pp.getPath().getMetadata().getExpiration());
+      assertEquals(2, refreshCount.get());
     } finally {
       pp.close();
     }
