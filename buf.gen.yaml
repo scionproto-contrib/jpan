@@ -1,0 +1,8 @@
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/java
+    out: src/main/java
+  - remote: buf.build/connectrpc/kotlin
+    out: app/src/main/java
+inputs:
+  - directory: src/main/proto
