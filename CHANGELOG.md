@@ -182,9 +182,6 @@ TODO
 
 ## 0.8.0 - WIP
 
-- SNAP support
-  [#271](https://github.com/scionproto-contrib/jpan/pull/271)
-
 ### Added
 
 - PathSelector API.
@@ -207,6 +204,8 @@ TODO
   [#285](https://github.com/scionproto-contrib/jpan/pull/285)
 - Added `ScionSocketAddress` lookup in `ScionService`.
   [#286](https://github.com/scionproto-contrib/jpan/pull/286)
+- SNAP support
+  [#271](https://github.com/scionproto-contrib/jpan/pull/271)
 
 ### Fixed
 
