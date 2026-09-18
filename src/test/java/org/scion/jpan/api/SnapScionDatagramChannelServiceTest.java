@@ -16,7 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -25,11 +24,11 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockNetwork2;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * Covers {@code ScionDatagramChannel.send(ByteBuffer, SocketAddress)} in SNAP mode with a real,
@@ -84,32 +83,10 @@ class SnapScionDatagramChannelServiceTest {
 
         // And the data must actually have gone somewhere and come back: the mirror server (a
         // plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
-        ByteBuffer recvBuf = ByteBuffer.allocate(1024);
-        ScionPathAddress from = receiveWithRetry(channel, recvBuf);
-        assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");
-        recvBuf.flip();
-        byte[] received = new byte[recvBuf.remaining()];
-        recvBuf.get(received);
+        byte[] received = TestUtil.receiveWithRetry(channel);
+        assertNotNull(received, "expected the mirrored reply to come back through the SNAP tunnel");
         assertArrayEquals(sent, received);
       }
     }
-  }
-
-  /** {@code receive()} is non-blocking, so poll briefly for the mirrored reply to arrive. */
-  private static ScionPathAddress receiveWithRetry(ScionDatagramChannel channel, ByteBuffer buffer)
-      throws IOException {
-    for (int i = 0; i < 100; i++) {
-      ScionPathAddress from = channel.receive(buffer);
-      if (from != null) {
-        return from;
-      }
-      try {
-        Thread.sleep(5);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(e);
-      }
-    }
-    return null;
   }
 }

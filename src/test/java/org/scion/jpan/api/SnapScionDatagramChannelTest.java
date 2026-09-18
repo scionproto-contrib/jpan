@@ -26,7 +26,6 @@ import org.scion.jpan.Constants;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.internal.util.IPHelper;
@@ -80,12 +79,8 @@ class SnapScionDatagramChannelTest {
 
         // And the data must actually have gone somewhere and come back: the mirror server (a
         // plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
-        ByteBuffer recvBuf = ByteBuffer.allocate(1024);
-        ScionPathAddress from = receiveWithRetry(channel, recvBuf);
-        assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");
-        recvBuf.flip();
-        byte[] received = new byte[recvBuf.remaining()];
-        recvBuf.get(received);
+        byte[] received = TestUtil.receiveWithRetry(channel);
+        assertNotNull(received, "expected the mirrored reply to come back through the SNAP tunnel");
         assertArrayEquals(sent, received);
       }
     }
@@ -115,12 +110,9 @@ class SnapScionDatagramChannelTest {
           channel.send(ByteBuffer.wrap(sent), path);
           assertNotNull(channel.getOverrideSourceAddress());
 
-          ByteBuffer recvBuf = ByteBuffer.allocate(1024);
-          ScionPathAddress from = receiveWithRetry(channel, recvBuf);
-          assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");
-          recvBuf.flip();
-          byte[] received = new byte[recvBuf.remaining()];
-          recvBuf.get(received);
+          byte[] received = TestUtil.receiveWithRetry(channel);
+          assertNotNull(
+              received, "expected the mirrored reply to come back through the SNAP tunnel");
           assertArrayEquals(sent, received);
         }
       } finally {
@@ -128,24 +120,6 @@ class SnapScionDatagramChannelTest {
         System.clearProperty(Constants.PROPERTY_SNAP_AUTH_KEY);
       }
     }
-  }
-
-  /** {@code receive()} is non-blocking, so poll briefly for the mirrored reply to arrive. */
-  private static ScionPathAddress receiveWithRetry(ScionDatagramChannel channel, ByteBuffer buffer)
-      throws IOException {
-    for (int i = 0; i < 100; i++) {
-      ScionPathAddress from = channel.receive(buffer);
-      if (from != null) {
-        return from;
-      }
-      try {
-        Thread.sleep(5);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(e);
-      }
-    }
-    return null;
   }
 
   @Test

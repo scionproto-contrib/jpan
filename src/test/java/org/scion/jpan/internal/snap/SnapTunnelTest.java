@@ -53,14 +53,19 @@ class SnapTunnelTest {
     mockSnapService.close();
   }
 
+  /** No HTTP control client needed for the handshake unless a test says otherwise. */
+  private SnapTunnel newSession() {
+    return newSession(null);
+  }
+
+  private SnapTunnel newSession(DatagramChannel channel) {
+    return new SnapTunnel(
+        channel, mockSnapService.getDataplaneAddress(), mockSnapService.getStaticPublicKey(), null);
+  }
+
   @Test
   void sendPacket_returnsScionByteCount_notWireGuardWireSize() throws IOException {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+    SnapTunnel session = newSession();
 
     byte[] scionPacket = new byte[123];
     int sent = session.sendPacket(scionPacket);
@@ -74,12 +79,7 @@ class SnapTunnelTest {
 
   @Test
   void sendPacket_zeroLengthPacket_returnsZero() throws IOException {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+    SnapTunnel session = newSession();
 
     int sent = session.sendPacket(new byte[0]);
 
@@ -92,12 +92,7 @@ class SnapTunnelTest {
     // send), so decrypt() is otherwise unexercised. MockSnapService relays every data packet
     // through an internal MockEchoServer by default, letting receivePacket() drive the real
     // AEAD-decrypt path.
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null /* no HTTP control client needed for handshake */);
+    SnapTunnel session = newSession();
 
     // Triggers the handshake, then sends one data packet so the mock has a peer index to reply to.
     byte[] sent = {1, 2, 3};
@@ -124,12 +119,7 @@ class SnapTunnelTest {
     try (MockEchoServer mirror = MockEchoServer.start()) {
       mockSnapService.relayTo(mirror.getAddress());
 
-      SnapTunnel session =
-          new SnapTunnel(
-              null,
-              mockSnapService.getDataplaneAddress(),
-              mockSnapService.getStaticPublicKey(),
-              null /* no HTTP control client needed for handshake */);
+      SnapTunnel session = newSession();
 
       byte[] sent = {9, 8, 7, 6, 5};
       session.sendPacket(sent);
@@ -152,12 +142,7 @@ class SnapTunnelTest {
     // Unlike DatagramChannel.receive()'s documented truncate-on-overflow contract, SNAP never
     // fragments a packet across the tunnel, so there is no usable partial result to truncate to --
     // receivePacket() must fail clearly instead of throwing an unchecked BufferOverflowException.
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
 
     byte[] sent = new byte[100]; // the default echo relays back exactly these 100 bytes
     session.sendPacket(sent);
@@ -185,12 +170,7 @@ class SnapTunnelTest {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    SnapTunnel session =
-        new SnapTunnel(
-            ipv6Channel,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession(ipv6Channel);
 
     long startNanos = System.nanoTime();
     ScionRuntimeException ex =
@@ -205,12 +185,7 @@ class SnapTunnelTest {
 
   @Test
   void receivePacket_blockingMode_waitsForDataInsteadOfReturningNull() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.configureBlocking(true);
     assertTrue(session.isBlocking());
 
@@ -243,12 +218,7 @@ class SnapTunnelTest {
     // duration, or a blocked reader thread would starve a concurrent writer thread -- unlike a
     // real (blocking) DatagramChannel, which allows one concurrent reader and one concurrent
     // writer.
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.configureBlocking(true);
     session.ensureConnected();
 
@@ -277,12 +247,7 @@ class SnapTunnelTest {
 
   @Test
   void receivePacket_blockingMode_closeUnblocksImmediately() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.configureBlocking(true);
     session.ensureConnected(); // establish first so the background call goes straight into the wait
 

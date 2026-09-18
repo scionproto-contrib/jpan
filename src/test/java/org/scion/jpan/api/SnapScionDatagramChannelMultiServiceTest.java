@@ -16,7 +16,6 @@ package org.scion.jpan.api;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
@@ -30,11 +29,11 @@ import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
-import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.MockSnapService;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * Covers two independent, genuinely concurrent SNAP tunnels -- each backed by its own {@link
@@ -119,14 +118,14 @@ class SnapScionDatagramChannelMultiServiceTest {
                       () -> {
                         awaitLatch(start);
                         channelA.send(ByteBuffer.wrap(sentA), pathA);
-                        return receiveWithRetry(channelA);
+                        return TestUtil.receiveWithRetry(channelA);
                       });
               Future<byte[]> sendB =
                   pool.submit(
                       () -> {
                         awaitLatch(start);
                         channelB.send(ByteBuffer.wrap(sentB), pathB);
-                        return receiveWithRetry(channelB);
+                        return TestUtil.receiveWithRetry(channelB);
                       });
               start.countDown();
               byte[] receivedA = sendA.get(10, TimeUnit.SECONDS);
@@ -160,26 +159,5 @@ class SnapScionDatagramChannelMultiServiceTest {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
-  }
-
-  /** {@code receive()} is non-blocking, so poll briefly for the mirrored reply to arrive. */
-  private static byte[] receiveWithRetry(ScionDatagramChannel channel) throws IOException {
-    ByteBuffer buffer = ByteBuffer.allocate(1024);
-    for (int i = 0; i < 100; i++) {
-      ScionPathAddress from = channel.receive(buffer);
-      if (from != null) {
-        buffer.flip();
-        byte[] received = new byte[buffer.remaining()];
-        buffer.get(received);
-        return received;
-      }
-      try {
-        Thread.sleep(5);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new IllegalStateException(e);
-      }
-    }
-    return null;
   }
 }

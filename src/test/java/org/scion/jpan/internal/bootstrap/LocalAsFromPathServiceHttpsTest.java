@@ -17,9 +17,6 @@ package org.scion.jpan.internal.bootstrap;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.security.KeyStore;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
@@ -33,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionUtil;
 import org.scion.jpan.proto.endhost.Underlays;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * Verifies that {@link LocalAsFromPathService} genuinely negotiates TLS when the endhost API
@@ -72,17 +70,7 @@ class LocalAsFromPathServiceHttpsTest {
             .build();
     HandshakeCertificates serverCertificates =
         new HandshakeCertificates.Builder().heldCertificate(serverCert).build();
-
-    KeyStore trustStore = KeyStore.getInstance("PKCS12");
-    trustStore.load(null, null);
-    trustStore.setCertificateEntry("test-endhost-api", serverCert.certificate());
-    trustStoreFile = File.createTempFile("endhost-api-truststore", ".p12");
-    try (OutputStream out = new FileOutputStream(trustStoreFile)) {
-      trustStore.store(out, "changeit".toCharArray());
-    }
-    System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
-    System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
-    System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+    trustStoreFile = TestUtil.installAsDefaultTrustedCertificate(serverCert);
 
     long testIsdAs = ScionUtil.parseIA(TEST_ISD_AS);
     Underlays.ListUnderlaysResponse response =

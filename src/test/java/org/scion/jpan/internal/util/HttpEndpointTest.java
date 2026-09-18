@@ -16,58 +16,34 @@ package org.scion.jpan.internal.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 
 class HttpEndpointTest {
 
-  @Test
-  void bareAddress_usesDefaultScheme() {
-    assertEquals(
-        "http://192.168.53.19:48080", HttpEndpoint.normalizeBaseUrl("192.168.53.19:48080", "http"));
-    assertEquals(
-        "https://192.168.53.19:48080",
-        HttpEndpoint.normalizeBaseUrl("192.168.53.19:48080", "https"));
-    assertEquals(
-        "https://discovery.scion.xyz.net",
-        HttpEndpoint.normalizeBaseUrl("discovery.scion.xyz.net", "https"));
+  @ParameterizedTest
+  @CsvSource({
+    "192.168.53.19:48080, http, http://192.168.53.19:48080", // bare address uses default scheme
+    "192.168.53.19:48080, https, https://192.168.53.19:48080",
+    "discovery.scion.xyz.net, https, https://discovery.scion.xyz.net",
+    "https://s01.chgtg1.snap.xyz.net:5001, http, https://s01.chgtg1.snap.xyz.net:5001", // explicit
+    "http://192.168.1.1:12345, https, http://192.168.1.1:12345", // scheme is kept either way
+    "https://s01.chgtg1.snap.xyz.net:5001/, https, https://s01.chgtg1.snap.xyz.net:5001", // and
+    "https://s01.chgtg1.snap.xyz.net:5001///, https, https://s01.chgtg1.snap.xyz.net:5001", // slashes
+    "192.168.1.1:12345/, http, http://192.168.1.1:12345" // are stripped even for a bare address
+  })
+  void normalizeBaseUrl_variousInputs_normalizedCorrectly(
+      String endpoint, String defaultScheme, String expected) {
+    assertEquals(expected, HttpEndpoint.normalizeBaseUrl(endpoint, defaultScheme));
   }
 
-  @Test
-  void explicitScheme_isKept_evenIfDifferentFromDefault() {
-    // An explicit "https://" must never be downgraded to the default scheme.
-    assertEquals(
-        "https://s01.chgtg1.snap.xyz.net:5001",
-        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001", "http"));
-    // An explicit "http://" must never be upgraded to the default scheme either.
-    assertEquals(
-        "http://192.168.1.1:12345",
-        HttpEndpoint.normalizeBaseUrl("http://192.168.1.1:12345", "https"));
-  }
-
-  @Test
-  void trailingSlashes_areStripped() {
-    assertEquals(
-        "https://s01.chgtg1.snap.xyz.net:5001",
-        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001/", "https"));
-    assertEquals(
-        "https://s01.chgtg1.snap.xyz.net:5001",
-        HttpEndpoint.normalizeBaseUrl("https://s01.chgtg1.snap.xyz.net:5001///", "https"));
-    // Trailing slashes on a scheme-less address must also be stripped after the default scheme
-    // is prepended.
-    assertEquals(
-        "http://192.168.1.1:12345", HttpEndpoint.normalizeBaseUrl("192.168.1.1:12345/", "http"));
-  }
-
-  @Test
-  void nullOrEmptyEndpoint_throws() {
-    IllegalArgumentException e;
-    e =
+  @ParameterizedTest
+  @NullAndEmptySource
+  void normalizeBaseUrl_nullOrEmptyEndpoint_throws(String endpoint) {
+    IllegalArgumentException e =
         assertThrows(
-            IllegalArgumentException.class, () -> HttpEndpoint.normalizeBaseUrl(null, "http"));
-    assertTrue(e.getMessage().contains("must not be empty"));
-    e =
-        assertThrows(
-            IllegalArgumentException.class, () -> HttpEndpoint.normalizeBaseUrl("", "http"));
+            IllegalArgumentException.class, () -> HttpEndpoint.normalizeBaseUrl(endpoint, "http"));
     assertTrue(e.getMessage().contains("must not be empty"));
   }
 }

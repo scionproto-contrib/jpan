@@ -411,18 +411,8 @@ class ScionTest {
 
         // Verify send() actually delivered the data, not just that it didn't throw: the mirror
         // server (a plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
-        ByteBuffer recvBuf = ByteBuffer.allocate(1024);
-        ScionPathAddress from = null;
-        for (int i = 0; i < 150 && from == null; i++) {
-          from = channel.receive(recvBuf);
-          if (from == null) {
-            Thread.sleep(20);
-          }
-        }
-        assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");
-        recvBuf.flip();
-        byte[] received = new byte[recvBuf.remaining()];
-        recvBuf.get(received);
+        byte[] received = TestUtil.receiveWithRetry(channel);
+        assertNotNull(received, "expected the mirrored reply to come back through the SNAP tunnel");
         assertArrayEquals(sent, received);
       }
     }

@@ -18,11 +18,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.protobuf.ByteString;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.security.KeyStore;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import okhttp3.mockwebserver.MockResponse;
@@ -33,9 +30,14 @@ import okhttp3.tls.HeldCertificate;
 import okio.Buffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.scion.jpan.Constants;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.snap.ControlService;
+import org.scion.jpan.testutil.TestUtil;
 
 /**
  * Whitebox coverage for {@link SnapControlClient} branches the higher-level (always-plain-HTTP)
@@ -67,31 +69,20 @@ class SnapControlClientWhiteboxTest {
   // normalizeBaseUrl()
   // -------------------------------------------------------------------------
 
-  @Test
-  void normalizeBaseUrl_null_throwsIllegalArgumentException() {
-    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.normalizeBaseUrl(null));
+  @ParameterizedTest
+  @NullAndEmptySource
+  void normalizeBaseUrl_invalidInput_throwsIllegalArgumentException(String input) {
+    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.normalizeBaseUrl(input));
   }
 
-  @Test
-  void normalizeBaseUrl_empty_throwsIllegalArgumentException() {
-    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.normalizeBaseUrl(""));
-  }
-
-  @Test
-  void normalizeBaseUrl_bareHostPort_defaultsToHttps() {
-    assertEquals("https://127.0.0.1:8080", SnapControlClient.normalizeBaseUrl("127.0.0.1:8080"));
-  }
-
-  @Test
-  void normalizeBaseUrl_explicitScheme_isKeptAsIs() {
-    assertEquals(
-        "http://127.0.0.1:8080", SnapControlClient.normalizeBaseUrl("http://127.0.0.1:8080"));
-  }
-
-  @Test
-  void normalizeBaseUrl_trailingSlashes_areStripped() {
-    assertEquals(
-        "https://127.0.0.1:8080", SnapControlClient.normalizeBaseUrl("https://127.0.0.1:8080///"));
+  @ParameterizedTest
+  @CsvSource({
+    "127.0.0.1:8080, https://127.0.0.1:8080", // bare host:port defaults to https
+    "http://127.0.0.1:8080, http://127.0.0.1:8080", // explicit scheme kept as-is
+    "https://127.0.0.1:8080///, https://127.0.0.1:8080" // trailing slashes stripped
+  })
+  void normalizeBaseUrl_variousInputs_normalizedCorrectly(String input, String expected) {
+    assertEquals(expected, SnapControlClient.normalizeBaseUrl(input));
   }
 
   // -------------------------------------------------------------------------
@@ -105,38 +96,20 @@ class SnapControlClientWhiteboxTest {
     assertEquals(1234, addr.getPort());
   }
 
-  @Test
-  void parseAddress_noColon_throwsIllegalArgumentException() {
-    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.parseAddress("hostonly"));
-  }
-
-  @Test
-  void parseAddress_colonAtStart_throwsIllegalArgumentException() {
-    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.parseAddress(":1234"));
-  }
-
-  @Test
-  void parseAddress_colonAtEnd_throwsIllegalArgumentException() {
-    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.parseAddress("host:"));
+  @ParameterizedTest
+  @ValueSource(strings = {"hostonly", ":1234", "host:"})
+  void parseAddress_invalidFormat_throwsIllegalArgumentException(String input) {
+    assertThrows(IllegalArgumentException.class, () -> SnapControlClient.parseAddress(input));
   }
 
   // -------------------------------------------------------------------------
   // isIpLiteral()
   // -------------------------------------------------------------------------
 
-  @Test
-  void isIpLiteral_ipv4_returnsTrue() {
-    assertTrue(SnapControlClient.isIpLiteral("127.0.0.1"));
-  }
-
-  @Test
-  void isIpLiteral_ipv6_returnsTrue() {
-    assertTrue(SnapControlClient.isIpLiteral("::1"));
-  }
-
-  @Test
-  void isIpLiteral_hostname_returnsFalse() {
-    assertFalse(SnapControlClient.isIpLiteral("snap.example.com"));
+  @ParameterizedTest
+  @CsvSource({"127.0.0.1, true", "::1, true", "snap.example.com, false"})
+  void isIpLiteral_variousHosts_classifiedCorrectly(String host, boolean expected) {
+    assertEquals(expected, SnapControlClient.isIpLiteral(host));
   }
 
   // -------------------------------------------------------------------------
@@ -156,7 +129,7 @@ class SnapControlClientWhiteboxTest {
             .build();
     HandshakeCertificates serverCertificates =
         new HandshakeCertificates.Builder().heldCertificate(serverCert).build();
-    installAsDefaultTrustedCertificate(serverCert);
+    trustStoreFile = TestUtil.installAsDefaultTrustedCertificate(serverCert);
 
     server = new MockWebServer();
     server.useHttps(serverCertificates.sslSocketFactory(), false);
@@ -335,19 +308,6 @@ class SnapControlClientWhiteboxTest {
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
-
-  private void installAsDefaultTrustedCertificate(HeldCertificate cert) throws Exception {
-    KeyStore trustStore = KeyStore.getInstance("PKCS12");
-    trustStore.load(null, null);
-    trustStore.setCertificateEntry("test-snap-control", cert.certificate());
-    trustStoreFile = File.createTempFile("snap-control-truststore", ".p12");
-    try (OutputStream out = new FileOutputStream(trustStoreFile)) {
-      trustStore.store(out, "changeit".toCharArray());
-    }
-    System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
-    System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
-    System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-  }
 
   private static MockResponse protoResponse(byte[] body) {
     return new MockResponse()

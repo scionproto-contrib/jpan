@@ -53,22 +53,8 @@ class LocalAsFromPathServiceTest {
     // preferred, even though a native AS is also available.
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()
-            .setUdp(
-                Underlays.UdpUnderlay.newBuilder()
-                    .addRouters(
-                        Underlays.Router.newBuilder()
-                            .setIsdAs(UDP_ISD_AS)
-                            .setAddress("10.0.0.1:31000")
-                            .build())
-                    .build())
-            .setSnap(
-                Underlays.SnapUnderlay.newBuilder()
-                    .addSnaps(
-                        Underlays.Snap.newBuilder()
-                            .setAddress("https://snap.example.com:5001")
-                            .addIsdAses(SNAP_ISD_AS)
-                            .build())
-                    .build())
+            .setUdp(udpUnderlayWithOneRouter())
+            .setSnap(snapUnderlayWithOneNode())
             .build();
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
@@ -85,14 +71,7 @@ class LocalAsFromPathServiceTest {
     // failing outright.
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()
-            .setUdp(
-                Underlays.UdpUnderlay.newBuilder()
-                    .addRouters(
-                        Underlays.Router.newBuilder()
-                            .setIsdAs(UDP_ISD_AS)
-                            .setAddress("10.0.0.1:31000")
-                            .build())
-                    .build())
+            .setUdp(udpUnderlayWithOneRouter())
             .setSnap(Underlays.SnapUnderlay.newBuilder().build())
             .build();
     mock = MockEndhostApi.start(response);
@@ -121,22 +100,8 @@ class LocalAsFromPathServiceTest {
     // ignored and the native UDP AS used.
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()
-            .setUdp(
-                Underlays.UdpUnderlay.newBuilder()
-                    .addRouters(
-                        Underlays.Router.newBuilder()
-                            .setIsdAs(UDP_ISD_AS)
-                            .setAddress("10.0.0.1:31000")
-                            .build())
-                    .build())
-            .setSnap(
-                Underlays.SnapUnderlay.newBuilder()
-                    .addSnaps(
-                        Underlays.Snap.newBuilder()
-                            .setAddress("https://snap.example.com:5001")
-                            .addIsdAses(SNAP_ISD_AS)
-                            .build())
-                    .build())
+            .setUdp(udpUnderlayWithOneRouter())
+            .setSnap(snapUnderlayWithOneNode())
             .build();
     mock = MockEndhostApi.start(response);
     // PROPERTY_UNDERLAY_MODE intentionally left unset (default is "udp").
@@ -190,16 +155,7 @@ class LocalAsFromPathServiceTest {
     // A ";"-joined candidate list (as produced by --discovery) must try the next candidate when
     // the first is unreachable, rather than failing outright.
     Underlays.ListUnderlaysResponse response =
-        Underlays.ListUnderlaysResponse.newBuilder()
-            .setUdp(
-                Underlays.UdpUnderlay.newBuilder()
-                    .addRouters(
-                        Underlays.Router.newBuilder()
-                            .setIsdAs(UDP_ISD_AS)
-                            .setAddress("10.0.0.1:31000")
-                            .build())
-                    .build())
-            .build();
+        Underlays.ListUnderlaysResponse.newBuilder().setUdp(udpUnderlayWithOneRouter()).build();
     mock = MockEndhostApi.start(response);
 
     // "127.0.0.1:1" is unassigned/unroutable and should fail fast; the second candidate is the
@@ -209,6 +165,23 @@ class LocalAsFromPathServiceTest {
     LocalAS localAS = LocalAsFromPathService.create(candidates, TrcStore.createEmpty());
 
     assertEquals(Collections.singleton(UDP_ISD_AS), localAS.getIsdAses());
+  }
+
+  private static Underlays.UdpUnderlay udpUnderlayWithOneRouter() {
+    return Underlays.UdpUnderlay.newBuilder()
+        .addRouters(
+            Underlays.Router.newBuilder().setIsdAs(UDP_ISD_AS).setAddress("10.0.0.1:31000").build())
+        .build();
+  }
+
+  private static Underlays.SnapUnderlay snapUnderlayWithOneNode() {
+    return Underlays.SnapUnderlay.newBuilder()
+        .addSnaps(
+            Underlays.Snap.newBuilder()
+                .setAddress("https://snap.example.com:5001")
+                .addIsdAses(SNAP_ISD_AS)
+                .build())
+        .build();
   }
 
   /** Minimal mock for the {@code UnderlayService/ListUnderlays} RPC. */

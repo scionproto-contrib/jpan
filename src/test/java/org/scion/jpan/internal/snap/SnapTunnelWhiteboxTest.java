@@ -28,6 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.testutil.MockSnapService;
 
@@ -52,6 +54,12 @@ class SnapTunnelWhiteboxTest {
     mockSnapService.close();
   }
 
+  /** No HTTP control client needed for the handshake in any of these tests. */
+  private SnapTunnel newSession() {
+    return new SnapTunnel(
+        null, mockSnapService.getDataplaneAddress(), mockSnapService.getStaticPublicKey(), null);
+  }
+
   // -------------------------------------------------------------------------
   // decrypt()
   // -------------------------------------------------------------------------
@@ -69,12 +77,7 @@ class SnapTunnelWhiteboxTest {
 
   @Test
   void decrypt_unparseablePacket_returnsNull() {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.ensureConnected();
 
     // Shorter than WireGuardPacket's 16-byte data-packet header: parseDataPacket() returns null.
@@ -83,12 +86,7 @@ class SnapTunnelWhiteboxTest {
 
   @Test
   void decrypt_receiverIndexMismatch_returnsNull() {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.ensureConnected();
 
     // Well-formed data packet, but addressed to a receiver index that cannot possibly be this
@@ -99,12 +97,7 @@ class SnapTunnelWhiteboxTest {
 
   @Test
   void decrypt_aeadFailure_returnsNull() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.sendPacket(new byte[] {1, 2, 3});
     session.awaitReadable(2000);
 
@@ -128,12 +121,7 @@ class SnapTunnelWhiteboxTest {
 
   @Test
   void receivePacket_noDataAvailable_returnsNullWithoutBlocking() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     // Establishes the handshake but never sends a data packet, so the mock has nothing to reply
     // with -- receivePacket() must return null immediately (it is non-blocking).
     session.ensureConnected();
@@ -146,12 +134,7 @@ class SnapTunnelWhiteboxTest {
   @Test
   @DisabledOnOs({OS.MAC, OS.WINDOWS})
   void receivePacket_ignoresPacketFromUnexpectedSource() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     // Complete one real round trip first and drain it, so nothing legitimate is pending on the
     // wire before the spoofed packet below.
     session.sendPacket(new byte[] {1, 2, 3});
@@ -174,12 +157,7 @@ class SnapTunnelWhiteboxTest {
   @Test
   @DisabledOnOs({OS.MAC, OS.WINDOWS})
   void receivePacket_skipsUndecryptableGarbageFromRealDataplaneAddress() throws Exception {
-    SnapTunnel session =
-        new SnapTunnel(
-            null,
-            mockSnapService.getDataplaneAddress(),
-            mockSnapService.getStaticPublicKey(),
-            null);
+    SnapTunnel session = newSession();
     session.ensureConnected();
 
     // Correctly-addressed (from the real dataplane) but nonsense "data" packet: passes the
@@ -215,22 +193,15 @@ class SnapTunnelWhiteboxTest {
     assertThrows(ScionRuntimeException.class, () -> SnapTunnel.parseSnapSocketAddress(encoded));
   }
 
-  @Test
-  void parseSnapSocketAddress_ipv4_returnsCorrectAddress() throws UnknownHostException {
-    InetSocketAddress expected = new InetSocketAddress(InetAddress.getByName("10.0.0.1"), 12345);
+  // No existing test infrastructure exercises the IPv6 case on its own (MockSnapService always
+  // encodes IPv4), so it's covered here alongside IPv4.
+  @ParameterizedTest
+  @CsvSource({"4, 10.0.0.1, 12345", "6, ::1, 54321"})
+  void parseSnapSocketAddress_variousIpVersions_returnsCorrectAddress(
+      int ipVersion, String ip, int port) throws UnknownHostException {
+    InetSocketAddress expected = new InetSocketAddress(InetAddress.getByName(ip), port);
 
-    InetSocketAddress actual = SnapTunnel.parseSnapSocketAddress(encode(0x04, expected));
-
-    assertEquals(expected, actual);
-  }
-
-  @Test
-  void parseSnapSocketAddress_ipv6_returnsCorrectAddress() throws UnknownHostException {
-    // Unlike IPv4, no existing test infrastructure (MockSnapService always encodes IPv4) ever
-    // exercised this branch.
-    InetSocketAddress expected = new InetSocketAddress(InetAddress.getByName("::1"), 54321);
-
-    InetSocketAddress actual = SnapTunnel.parseSnapSocketAddress(encode(0x06, expected));
+    InetSocketAddress actual = SnapTunnel.parseSnapSocketAddress(encode(ipVersion, expected));
 
     assertEquals(expected, actual);
   }
