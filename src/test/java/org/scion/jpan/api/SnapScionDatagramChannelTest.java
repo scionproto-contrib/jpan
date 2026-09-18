@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.Constants;
@@ -28,9 +29,8 @@ import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionUtil;
-import org.scion.jpan.testutil.MockEchoServer;
-import org.scion.jpan.testutil.MockNetwork2;
-import org.scion.jpan.testutil.MockSnapApiTokenService;
+import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.*;
 
 /**
  * Covers {@link ScionDatagramChannel} wired up for SNAP end-to-end through the real, public {@code
@@ -153,5 +153,71 @@ class SnapScionDatagramChannelTest {
       }
     }
     return null;
+  }
+
+  @Test
+  void isBlocking_true_read() throws IOException {
+    testBlocking(true, channel -> channel.read(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_false_read() throws IOException {
+    testBlocking(false, channel -> channel.read(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_true_receiver() throws IOException {
+    testBlocking(true, channel -> channel.receive(ByteBuffer.allocate(100)));
+  }
+
+  @Test
+  void isBlocking_false_receive() throws IOException {
+    testBlocking(false, channel -> channel.receive(ByteBuffer.allocate(100)));
+  }
+
+  interface ChannelConsumer {
+    void accept(ScionDatagramChannel channel) throws InterruptedException, IOException;
+  }
+
+  private void testBlocking(boolean isBlocking, ChannelConsumer fn) throws IOException {
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
+        MockSnapApiTokenService aaService = MockSnapApiTokenService.start();
+        MockEchoServer mirror = MockEchoServer.start()) {
+      nw.getSnapService().relayTo(mirror.getAddress());
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE, aaService.getBaseUrl());
+      System.setProperty(Constants.PROPERTY_SNAP_AUTH_KEY, MockSnapApiTokenService.API_KEY);
+
+      // Test
+      testBlocking2(isBlocking, fn);
+    } finally {
+      System.clearProperty(Constants.PROPERTY_SNAP_AUTH_SERVICE);
+      System.clearProperty(Constants.PROPERTY_SNAP_AUTH_KEY);
+    }
+  }
+
+  private void testBlocking2(boolean isBlocking, ChannelConsumer fn) throws IOException {
+    InetSocketAddress address =
+        new InetSocketAddress(IPHelper.toInetAddress("testIP", "127.0.0.1"), 12345);
+    MockDNS.install("1-ff00:0:112", address.getAddress());
+    AtomicBoolean wasBlocking = new AtomicBoolean(true);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open()) {
+      channel.connect(address);
+      channel.configureBlocking(isBlocking);
+      assertEquals(isBlocking, channel.isBlocking());
+      ManagedThread t = ManagedThread.newBuilder().build();
+      t.submit(
+          mtn -> {
+            try {
+              mtn.reportStarted();
+              fn.accept(channel);
+              // Should only be reached with non-blocking channel
+              wasBlocking.getAndSet(false);
+            } catch (InterruptedException | IOException e) {
+              // ignore
+            }
+          });
+      t.join(1000);
+      assertEquals(isBlocking, wasBlocking.get());
+    }
   }
 }

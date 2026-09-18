@@ -477,6 +477,18 @@ public class SnapTunnel {
         // the selector wakes immediately and the next underlay.receive() call below throws
         // ClosedChannelException, propagating naturally instead of looping forever.
         awaitReadable(Long.MAX_VALUE);
+        // On JDK 8, a non-blocking DatagramChannel.receive() call made with the thread's interrupt
+        // status already set throws ClosedByInterruptException, which used to be enough on its own
+        // to unblock a cancelled blocking receivePacket() call. Starting with JDK 11, receive() no
+        // longer does that check for a non-blocking channel -- it just returns null again -- and
+        // Selector.select() never clears the interrupt status once set, so every subsequent
+        // awaitReadable() call above returns instantly: without this explicit check, an interrupted
+        // blocking receivePacket() call would spin forever (100% CPU, thread never terminates)
+        // instead of terminating, on JDK 11+.
+        if (Thread.currentThread().isInterrupted()) {
+          close();
+          throw new java.nio.channels.ClosedByInterruptException();
+        }
         continue;
       }
       if (!firstHop.equals(srcAddress)) {
