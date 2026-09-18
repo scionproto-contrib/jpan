@@ -70,6 +70,7 @@ public class LocalAsFromPathService {
     List<Long> isdAs =
         u.getUdp().getRoutersList().stream()
             .map(Underlays.Router::getIsdAs)
+            .distinct()
             .collect(Collectors.toList());
     List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
     return new LocalAS(
