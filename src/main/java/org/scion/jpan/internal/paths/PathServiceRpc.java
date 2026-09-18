@@ -72,7 +72,7 @@ public class PathServiceRpc {
         } else {
           // Never send the SNAP bearer token over a plaintext connection: an on-path observer
           // could capture and replay it against the control service.
-          LOG.warn(
+          LOG.info(
               "Not sending SNAP auth token to insecure (non-https) control service: {}", baseUrl);
         }
       }

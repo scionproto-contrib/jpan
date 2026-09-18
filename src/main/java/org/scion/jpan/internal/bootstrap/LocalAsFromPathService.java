@@ -167,7 +167,7 @@ public class LocalAsFromPathService {
       } else {
         // Never send the SNAP bearer token over a plaintext connection: an on-path observer
         // could capture and replay it against the endhost API.
-        LOG.warn("Not sending SNAP auth token to insecure (non-https) path service: {}", baseUrl);
+        LOG.info("Not sending SNAP auth token to insecure (non-https) path service: {}", baseUrl);
       }
     }
     Request request =
