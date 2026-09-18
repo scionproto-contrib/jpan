@@ -10,21 +10,17 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
-- Check latest proto files in scion-sdk
 - Check scion-sdk version flag in http API
 - Add ScionUtil.parseScionAddress("64-2:0:9,[123.123.123.123]);
   - Removed ScionUtil.parseInetAddress
 - Performance TODO: When connected: buffer complete SCION header i.o. building it
   every time. Add cached header to "Path" for send()?
 - Support Netty?!?
-- Copy new proto file with "SegmentLookupService" from SCION SDK (replaces segments.proto?)
 - Change Set<Long>  for ISD/AS  to List<Long>. This is easier to use and allows ranking.
 - Use Builder for LocalAS?
 - Create Builder for ScionService or add SNP props to Channel.Builder???
 - Fix flaky MacOS build
   [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
-- Report flaky discovery SNAP
-- Check: SNAP ports are blocked if session has ended?
 
 - After release: update exercise for PathSelector
 

@@ -543,7 +543,9 @@ public class ScionService {
     return localAS.getBorderRouterAddress(interfaceID);
   }
 
-  SnapDataplaneDetails getSnapDataPlane() {
+  // Public (not just package-private) so that org.scion.jpan.internal.SelectingDatagramChannel
+  // (used by ScionDatagramSocket) can wire up SNAP the same way ScionDatagramChannel.Builder does.
+  public SnapDataplaneDetails getSnapDataPlane() {
     return snapDataplaneDetails;
   }
 

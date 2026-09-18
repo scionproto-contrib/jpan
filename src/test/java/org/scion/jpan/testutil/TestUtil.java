@@ -18,14 +18,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.nio.ByteBuffer;
 import java.security.KeyStore;
+import java.util.Arrays;
 import okhttp3.tls.HeldCertificate;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionDatagramSocket;
 import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.InfoField;
@@ -194,6 +193,23 @@ public class TestUtil {
       sleep(20);
     }
     return null;
+  }
+
+  /**
+   * Unlike the {@link ScionDatagramChannel} overload, {@code ScionDatagramSocket.receive()} is a
+   * genuinely blocking call (it extends {@link java.net.DatagramSocket}), so this uses a real
+   * socket timeout instead of polling -- polling a blocking call would just block forever on the
+   * first call if nothing ever arrives.
+   */
+  public static byte[] receiveWithRetry(ScionDatagramSocket channel) throws IOException {
+    channel.setSoTimeout(3000);
+    DatagramPacket packet = new DatagramPacket(new byte[1024], 1024);
+    try {
+      channel.receive(packet);
+    } catch (SocketTimeoutException e) {
+      return null;
+    }
+    return Arrays.copyOf(packet.getData(), packet.getLength());
   }
 
   public static int getJavaMajorVersion() {
