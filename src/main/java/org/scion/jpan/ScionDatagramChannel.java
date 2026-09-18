@@ -24,6 +24,7 @@ import java.nio.channels.DatagramChannel;
 import java.nio.channels.NotYetConnectedException;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.internal.util.SimpleCache;
 import org.scion.jpan.selectors.PathSelector;
@@ -35,22 +36,33 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
 
   // Store one path per (non-Scion-)destination address
   // We do not use a WeakHashMap here.
-  // One reason is that if PathSelectors get GC'd their timer taks may not get cleaned up.
-  // Timer tasks should diappear over time when they get executed.
-  // Also, if entries are removed due to GC pressure, recreating them may actuall add to the
+  // One reason is that if PathSelectors get GC'd their timer tasks may not get cleaned up.
+  // Timer tasks should disappear over time when they get executed.
+  // Also, if entries are removed due to GC pressure, recreating them may actually add to the
   // pressure because restoring an entry causes additional objects to be created.
   //
   // Overall, a predictable SimpleCache seems better.
   private final SimpleCache<InetSocketAddress, PathSelector> resolvedDestinations =
       new SimpleCache<>(100, true);
 
+  @Deprecated // TODO remove in 0.8.0. Please you the other constructor
   protected ScionDatagramChannel(
       ScionService service,
       java.nio.channels.DatagramChannel channel,
       PathSelector connectSelector,
       PathSelectorFactory factory)
       throws IOException {
-    super(service, channel, connectSelector, factory);
+    this(service, channel, connectSelector, factory, null);
+  }
+
+  protected ScionDatagramChannel(
+      ScionService service,
+      java.nio.channels.DatagramChannel channel,
+      PathSelector connectSelector,
+      PathSelectorFactory factory,
+      SnapUnderlay snapUnderlay)
+      throws IOException {
+    super(service, channel, connectSelector, factory, snapUnderlay);
   }
 
   /**
@@ -82,7 +94,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
    * @throws IOException if an error occurs
    */
   public static ScionDatagramChannel open(ScionService service) throws IOException {
-    return open(service, java.nio.channels.DatagramChannel.open());
+    return open(service, null);
   }
 
   public static ScionDatagramChannel open(
@@ -348,8 +360,13 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         service = ScionService.defaultService();
       }
 
-      if (channel == null) {
-        channel = java.nio.channels.DatagramChannel.open();
+      SnapUnderlay snap = null;
+      if (service != null) {
+        snap = SnapUnderlay.tryCreate(service.getSnapDataPlane(), channel);
+        if (snap != null) {
+          // SNAP create a channel if the incoming channel was 'null'
+          channel = snap.transportChannel();
+        }
       }
 
       if (selector == null && service != null) {
@@ -360,7 +377,7 @@ public class ScionDatagramChannel extends AbstractScionChannel<ScionDatagramChan
         factory = PathSelectorWithRefresh.Factory.create(PathPolicy.DEFAULT);
       }
 
-      return new ScionDatagramChannel(service, channel, selector, factory);
+      return new ScionDatagramChannel(service, channel, selector, factory, snap);
     }
   }
 }

@@ -1,0 +1,269 @@
+// Copyright 2026 ETH Zurich
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package org.scion.jpan.internal.snap;
+
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.StandardProtocolFamily;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.DatagramChannel;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.testutil.MockEchoServer;
+import org.scion.jpan.testutil.MockSnapService;
+
+class SnapTunnelTest {
+
+  private MockSnapService mockSnapService;
+
+  @BeforeEach
+  void beforeEach() {
+    mockSnapService = MockSnapService.start(MockSnapService.ADDRESS);
+  }
+
+  @AfterEach
+  void afterEach() {
+    mockSnapService.close();
+  }
+
+  /** No HTTP control client needed for the handshake unless a test says otherwise. */
+  private SnapTunnel newSession() {
+    return newSession(null);
+  }
+
+  private SnapTunnel newSession(DatagramChannel channel) {
+    return new SnapTunnel(
+        channel, mockSnapService.getDataplaneAddress(), mockSnapService.getStaticPublicKey(), null);
+  }
+
+  @Test
+  void sendPacket_returnsScionByteCount_notWireGuardWireSize() throws IOException {
+    SnapTunnel session = newSession();
+
+    byte[] scionPacket = new byte[123];
+    int sent = session.sendPacket(scionPacket);
+
+    // Must return the number of SCION-level bytes sent, not the WireGuard-encrypted wire size
+    // (32 bytes larger, for the data header + AEAD tag): callers like ScionDatagramChannel.send()
+    // subtract their own header size from this return value to report "payload bytes sent" to the
+    // API user.
+    assertEquals(scionPacket.length, sent);
+  }
+
+  @Test
+  void sendPacket_zeroLengthPacket_returnsZero() throws IOException {
+    SnapTunnel session = newSession();
+
+    int sent = session.sendPacket(new byte[0]);
+
+    assertEquals(0, sent);
+  }
+
+  @Test
+  void receivePacket_decryptsRealDataPacketFromDataPlane() throws IOException {
+    // No other SnapTunnel test receives a real post-handshake WireGuard data packet (they only
+    // send), so decrypt() is otherwise unexercised. MockSnapService relays every data packet
+    // through an internal MockEchoServer by default, letting receivePacket() drive the real
+    // AEAD-decrypt path.
+    SnapTunnel session = newSession();
+
+    // Triggers the handshake, then sends one data packet so the mock has a peer index to reply to.
+    byte[] sent = {1, 2, 3};
+    session.sendPacket(sent);
+
+    // Wait for the mock's relayed reply, then read and decrypt it.
+    session.awaitReadable(2000);
+    ByteBuffer received = ByteBuffer.allocate(1024);
+    InetSocketAddress from = session.receivePacket(received);
+
+    assertNotNull(from, "expected a relayed reply from the mock SNAP dataplane");
+    received.flip();
+    byte[] payload = new byte[received.remaining()];
+    received.get(payload);
+    assertArrayEquals(sent, payload);
+  }
+
+  @Test
+  void receivePacket_relaysThroughPlainMirrorServer() throws IOException {
+    // Unlike the default-echo test above, this proves the mock can be pointed at a *different*
+    // plain (non-SNAP) UDP mirror via relayTo(): the mock decrypts what the client sent, forwards
+    // the plaintext verbatim to that mirror, and re-encrypts whatever it sends back -- so the
+    // bytes received here must match exactly what was sent, not a fixed constant.
+    try (MockEchoServer mirror = MockEchoServer.start()) {
+      mockSnapService.relayTo(mirror.getAddress());
+
+      SnapTunnel session = newSession();
+
+      byte[] sent = {9, 8, 7, 6, 5};
+      session.sendPacket(sent);
+
+      session.awaitReadable(2000);
+      ByteBuffer received = ByteBuffer.allocate(1024);
+      InetSocketAddress from = session.receivePacket(received);
+
+      assertNotNull(from, "expected a relayed reply via the mirror server");
+      received.flip();
+      byte[] payload = new byte[received.remaining()];
+      received.get(payload);
+      assertArrayEquals(sent, payload);
+    }
+  }
+
+  @Test
+  void receivePacket_payloadLargerThanBuffer_throwsSnapPacketTooLargeException()
+      throws IOException {
+    // Unlike DatagramChannel.receive()'s documented truncate-on-overflow contract, SNAP never
+    // fragments a packet across the tunnel, so there is no usable partial result to truncate to --
+    // receivePacket() must fail clearly instead of throwing an unchecked BufferOverflowException.
+    SnapTunnel session = newSession();
+
+    byte[] sent = new byte[100]; // the default echo relays back exactly these 100 bytes
+    session.sendPacket(sent);
+    session.awaitReadable(2000);
+
+    ByteBuffer tooSmall = ByteBuffer.allocate(50);
+    ScionRuntimeException ex =
+        assertThrows(ScionRuntimeException.class, () -> session.receivePacket(tooSmall));
+    assertTrue(ex.getMessage().contains("100"), "unexpected message: " + ex.getMessage());
+    assertTrue(ex.getMessage().contains("50"), "unexpected message: " + ex.getMessage());
+    assertEquals(0, tooSmall.position(), "buffer must be untouched when rejected");
+  }
+
+  @Test
+  void ensureConnected_ipv6BoundChannel_failsFastInsteadOfTimingOut() {
+    // An explicit INET6 channel is guaranteed to end up bound to an IPv6 local address (unlike a
+    // family-unspecified DatagramChannel.open(), whose resolved family is platform-dependent),
+    // while still being able to send() to the mock's IPv4 dataplane address without throwing --
+    // JDK INET6 channels are dual-stack-capable. This deterministically reproduces the
+    // address-family mismatch a caller-supplied channel can trigger, without depending on a
+    // particular platform's default channel family.
+    DatagramChannel ipv6Channel;
+    try {
+      ipv6Channel = DatagramChannel.open(StandardProtocolFamily.INET6);
+    } catch (IOException e) {
+      throw new IllegalStateException(e);
+    }
+    SnapTunnel session = newSession(ipv6Channel);
+
+    long startNanos = System.nanoTime();
+    ScionRuntimeException ex =
+        assertThrows(ScionRuntimeException.class, () -> session.sendPacket(new byte[] {1, 2, 3}));
+    long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+
+    assertTrue(ex.getMessage().contains("IPv4"), "unexpected message: " + ex.getMessage());
+    // The response from the IPv4-only mock never matches on an IPv6-bound socket, so this must
+    // fail fast rather than only after the handshake-response timeout.
+    assertTrue(elapsedMs < 2000, "expected a fast failure, took " + elapsedMs + "ms");
+  }
+
+  @Test
+  void receivePacket_blockingMode_waitsForDataInsteadOfReturningNull() throws Exception {
+    SnapTunnel session = newSession();
+    session.configureBlocking(true);
+    assertTrue(session.isBlocking());
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      // Nothing has been sent yet, so this call must block (not return null) until data arrives.
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+
+      // Give the background thread a moment to actually enter the blocking wait before triggering
+      // the handshake + send (which the mock echoes back) from this thread.
+      Thread.sleep(100);
+      byte[] sent = {7, 7, 7};
+      session.sendPacket(sent);
+
+      InetSocketAddress from = future.get(5, TimeUnit.SECONDS);
+      assertNotNull(from, "expected the blocked receivePacket() to unblock with the echoed reply");
+      buffer.flip();
+      byte[] received = new byte[buffer.remaining()];
+      buffer.get(received);
+      assertArrayEquals(sent, received);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  void receivePacket_blockingMode_doesNotBlockConcurrentSendPacket() throws Exception {
+    // receivePacket() must not hold a lock for its whole (potentially indefinite) blocking
+    // duration, or a blocked reader thread would starve a concurrent writer thread -- unlike a
+    // real (blocking) DatagramChannel, which allows one concurrent reader and one concurrent
+    // writer.
+    SnapTunnel session = newSession();
+    session.configureBlocking(true);
+    session.ensureConnected();
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+      Thread.sleep(100); // let it actually enter the blocking wait
+
+      long startNanos = System.nanoTime();
+      session.sendPacket(new byte[] {4, 5, 6});
+      long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
+      assertTrue(
+          elapsedMs < 1000,
+          "sendPacket() was blocked by a concurrent blocking receivePacket(): took "
+              + elapsedMs
+              + "ms");
+
+      // The blocked receive should also unblock once the mock echoes the sent packet back.
+      InetSocketAddress from = future.get(5, TimeUnit.SECONDS);
+      assertNotNull(from);
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+
+  @Test
+  void receivePacket_blockingMode_closeUnblocksImmediately() throws Exception {
+    SnapTunnel session = newSession();
+    session.configureBlocking(true);
+    session.ensureConnected(); // establish first so the background call goes straight into the wait
+
+    ExecutorService pool = Executors.newSingleThreadExecutor();
+    try {
+      ByteBuffer buffer = ByteBuffer.allocate(1024);
+      Future<InetSocketAddress> future = pool.submit(() -> session.receivePacket(buffer));
+      Thread.sleep(100); // let the background thread actually enter the blocking wait
+
+      session.close();
+
+      ExecutionException ex =
+          assertThrows(ExecutionException.class, () -> future.get(5, TimeUnit.SECONDS));
+      assertInstanceOf(ClosedChannelException.class, ex.getCause());
+    } finally {
+      pool.shutdownNow();
+    }
+  }
+}

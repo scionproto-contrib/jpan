@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+option java_package = "org.scion.jpan.proto.endhost.discovery";
+
+package scion.endhost.discovery.v1;
+
+// Endhost API Discovery service.
+//
+// This service allows clients to discover available Endhost APIs.
+service EndhostApiDiscoveryService {
+  // GetEndhostApis returns the available Endhost APIs.
+  rpc GetEndhostApis(RpcGetEndhostApisRequest) returns (RpcGetEndhostApisResponse);
+}
+
+// Request to discovery available Endhost APIs.
+message RpcGetEndhostApisRequest {}
+
+// Endhost APIs response message.
+message RpcGetEndhostApisResponse {
+  // Set of Endhost APIs groups.
+  // Should be used in order, using the first reachable one.
+  //
+  // After establishing a connection to an API in a group, the client can failover to any other API in the same group if the connection fails.
+  // Failover between groups requires the client to re-establish connections to snaps and other services using the new API.
+  repeated RpcEndhostApiGroup groups = 1;
+}
+
+// Group of Endhost APIs the client can failover between.
+message RpcEndhostApiGroup {
+  // URL of the Endhost API.
+  repeated RpcEndhostApiInfo apis = 1;
+}
+
+// Single Endhost API.
+message RpcEndhostApiInfo {
+  // URL of the Endhost API.
+  string address = 1;
+}

@@ -14,11 +14,19 @@
 
 package org.scion.jpan.testutil;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.security.KeyStore;
+import okhttp3.tls.HeldCertificate;
+import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.demo.inspector.HopField;
 import org.scion.jpan.demo.inspector.InfoField;
 import org.scion.jpan.demo.inspector.PathHeaderScion;
@@ -148,6 +156,44 @@ public class TestUtil {
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Installs {@code cert} as the sole entry in a fresh PKCS12 truststore and points the JVM's
+   * default trust manager at it via the {@code javax.net.ssl.trustStore*} system properties.
+   * Callers must delete the returned file and clear those properties in {@code @AfterEach}.
+   */
+  public static File installAsDefaultTrustedCertificate(HeldCertificate cert) throws Exception {
+    KeyStore trustStore = KeyStore.getInstance("PKCS12");
+    trustStore.load(null, null);
+    trustStore.setCertificateEntry("test-cert", cert.certificate());
+    File trustStoreFile = File.createTempFile("test-truststore", ".p12");
+    try (OutputStream out = new FileOutputStream(trustStoreFile)) {
+      trustStore.store(out, "changeit".toCharArray());
+    }
+    System.setProperty("javax.net.ssl.trustStore", trustStoreFile.getAbsolutePath());
+    System.setProperty("javax.net.ssl.trustStoreType", "PKCS12");
+    System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+    return trustStoreFile;
+  }
+
+  /**
+   * Polls {@code channel.receive()} (non-blocking) until data arrives or ~3s elapse. Returns the
+   * received payload, or {@code null} on timeout.
+   */
+  public static byte[] receiveWithRetry(ScionDatagramChannel channel) throws IOException {
+    ByteBuffer buffer = ByteBuffer.allocate(1024);
+    for (int i = 0; i < 150; i++) {
+      ScionPathAddress from = channel.receive(buffer);
+      if (from != null) {
+        buffer.flip();
+        byte[] received = new byte[buffer.remaining()];
+        buffer.get(received);
+        return received;
+      }
+      sleep(20);
+    }
+    return null;
   }
 
   public static int getJavaMajorVersion() {

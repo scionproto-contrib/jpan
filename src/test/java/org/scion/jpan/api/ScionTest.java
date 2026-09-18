@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.*;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.Files;
@@ -380,6 +381,40 @@ class ScionTest {
       }
     } finally {
       MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
+  void defaultService_bootstrapTopoFile_dispatcherPortRange_snap() throws Exception {
+    // A SNAP-mode channel should not respect the port range: fixed ports are only useful for
+    // talking directly to a border router, and SNAP's slow port reuse can make binding one fail
+    // (see AbstractScionChannel.ensureBound()'s "snapUnderlay == null && ports.hasPortRange()"
+    // guard). LocalAsFromPathService's SNAP branch always reports
+    // DispatcherPortRange.createAll(), so this only confirms the channel binds to an ephemeral
+    // port rather than a dispatcher-range one like 31000.
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
+        MockEchoServer mirror = MockEchoServer.start()) {
+      nw.getSnapService().relayTo(mirror.getAddress());
+
+      // Same AS as the local client (ASff00_0_112): PathBuilder returns an empty raw path for
+      // same-AS traffic, which is required for the round-trip verification below to work.
+      long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+      InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+
+      try (ScionDatagramChannel channel =
+          ScionDatagramChannel.newBuilder().service(service).open()) {
+        byte[] sent = {1, 2, 3};
+        channel.send(ByteBuffer.wrap(sent), path);
+        assertNotEquals(31000, channel.getLocalAddress().getPort());
+
+        // Verify send() actually delivered the data, not just that it didn't throw: the mirror
+        // server (a plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
+        byte[] received = TestUtil.receiveWithRetry(channel);
+        assertNotNull(received, "expected the mirrored reply to come back through the SNAP tunnel");
+        assertArrayEquals(sent, received);
+      }
     }
   }
 

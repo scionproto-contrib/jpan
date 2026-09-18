@@ -1,0 +1,140 @@
+// Copyright 2026 ETH Zurich
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//   http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package org.scion.jpan.internal.snap;
+
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.StandardProtocolFamily;
+import java.nio.ByteBuffer;
+import java.nio.channels.DatagramChannel;
+import java.util.Arrays;
+import org.scion.jpan.ScionRuntimeException;
+import org.scion.jpan.internal.util.Config;
+
+/**
+ * Encapsulates SNAP-tunnel transport for a channel: wraps a {@link SnapTunnel} and dispatches
+ * send/receive/close through it instead of a plain UDP underlay.
+ *
+ * <p>A channel either holds an instance of this class (SNAP mode) or {@code null} (plain UDP
+ * underlay) -- that is the only thing a channel needs to know about SNAP; the handshake,
+ * encryption, and wire format all stay behind {@link SnapTunnel}.
+ */
+public final class SnapUnderlay {
+  private final SnapTunnel tunnel;
+
+  private SnapUnderlay(SnapTunnel tunnel) {
+    this.tunnel = tunnel;
+  }
+
+  /**
+   * @return {@code null} if {@code service} does not have SNAP mode enabled -- callers should treat
+   *     that as "use a plain UDP underlay instead."
+   */
+  public static SnapUnderlay tryCreate(SnapDataplaneDetails dp, DatagramChannel channel) {
+    if (!Config.isUnderlaySnapAllowed()) {
+      return null;
+    }
+    if (dp == null || dp.getSnapStaticX25519() == null) {
+      if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
+        throw new ScionRuntimeException(
+            "SNAP mode requested but no SNAP dataplane/static key available");
+      }
+      // mode=auto: no SNAP dataplane was resolved (see
+      // ScionService.initializeSnapDataPlaneIfEnabled) -- fall back to plain UDP instead of
+      // failing channel construction.
+      return null;
+    }
+
+    // SNAP requires an IPv4 channel: the dataplane is IPv4-only, but a platform-default
+    // DatagramChannel#open() can come back IPv6/dual-stack depending on the JVM/platform (this
+    // varies even across runs on the same machine). Since this channel becomes SnapUnderlay's real
+    // transport, that mismatch would otherwise only surface as a slow handshake timeout.
+    if (channel == null) {
+      try {
+        channel = DatagramChannel.open(StandardProtocolFamily.INET);
+      } catch (IOException e) {
+        throw new ScionRuntimeException("Could not create IPv4 socket for SNAP", e);
+      }
+    }
+
+    String snapTunControlEndpoint = dp.getSnapTunControlAddress();
+    SnapControlClient snapControlClient =
+        (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty())
+            ? null
+            : new SnapControlClient(snapTunControlEndpoint);
+
+    return SnapUnderlay.create(
+        channel, dp.getAddress(), Arrays.copyOf(dp.getSnapStaticX25519(), 32), snapControlClient);
+  }
+
+  /** Wraps an already-built tunnel, e.g. one pointed at a mock SNAP server for tests. */
+  public static SnapUnderlay wrap(SnapTunnel tunnel) {
+    return tunnel == null ? null : new SnapUnderlay(tunnel);
+  }
+
+  /** Builds a SNAP tunnel from already-resolved SNAP dataplane configuration. */
+  private static SnapUnderlay create(
+      DatagramChannel channel,
+      InetSocketAddress dataPlaneAddress,
+      byte[] peerStaticKey,
+      SnapControlClient snapControlClient) {
+    SnapTunnel tunnel = new SnapTunnel(channel, dataPlaneAddress, peerStaticKey, snapControlClient);
+    return new SnapUnderlay(tunnel);
+  }
+
+  /** The real, OS-backed channel carrying encrypted SNAP traffic; for selector registration. */
+  public DatagramChannel transportChannel() {
+    return tunnel.transportChannel();
+  }
+
+  public int send(ByteBuffer buffer) throws IOException {
+    byte[] scionPacket = new byte[buffer.remaining()];
+    buffer.get(scionPacket);
+    return tunnel.sendPacket(scionPacket);
+  }
+
+  public InetSocketAddress receive(ByteBuffer buffer) throws IOException {
+    return tunnel.receivePacket(buffer);
+  }
+
+  /**
+   * @see SnapTunnel#configureBlocking(boolean)
+   */
+  public void configureBlocking(boolean block) {
+    tunnel.configureBlocking(block);
+  }
+
+  public boolean isBlocking() {
+    return tunnel.isBlocking();
+  }
+
+  /** Ensures the handshake has completed and returns the SNAP-assigned source address. */
+  public InetSocketAddress ensureConnectedSourceAddress() {
+    tunnel.ensureConnected();
+    return tunnel.localTunnelAddress();
+  }
+
+  /**
+   * @return the SNAP assigned source address or 'null' if the SNAP connection has not been
+   *     established
+   */
+  public InetSocketAddress currentSourceAddress() {
+    return tunnel.localTunnelAddress();
+  }
+
+  public void close() {
+    tunnel.close();
+  }
+}

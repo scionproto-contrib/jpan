@@ -54,6 +54,45 @@ public final class Constants {
   /** Address of the path service with the new endhost API. */
   public static final String ENV_BOOTSTRAP_PATH_SERVICE = "SCION_BOOTSTRAP_PATH_SERVICE";
 
+  /** Address or URL of the authentication service. */
+  public static final String PROPERTY_SNAP_AUTH_SERVICE = "org.scion.snap.auth.service";
+
+  /** Address or URL of the authentication service. */
+  public static final String ENV_SNAP_AUTH_SERVICE = "SCION_SNAP_AUTH_SERVICE";
+
+  /** Snap API key. */
+  public static final String PROPERTY_SNAP_AUTH_KEY = "org.scion.snap.auth.key";
+
+  /** Snap API key. */
+  public static final String ENV_SNAP_AUTH_KEY = "SCION_SNAP_AUTH_KEY";
+
+  /** Transport underlay mode: "udp" (default), "snap" or "auto". */
+  public static final String PROPERTY_UNDERLAY_MODE = "org.scion.underlay.mode";
+
+  /** Transport underlay mode: "udp" (default), "snap" or "auto". */
+  public static final String ENV_UNDERLAY_MODE = "SCION_UNDERLAY_MODE";
+
+  // TODO change to "auto" once SNAP is matured.
+  public static final String DEFAULT_UNDERLAY_MODE = "udp";
+
+  /** Optional explicit SNAP control-plane endpoint (host:port). */
+  public static final String PROPERTY_SNAP_CONTROL_PLANE = "org.scion.snap.controlPlane";
+
+  /** Optional explicit SNAP control-plane endpoint (host:port). */
+  public static final String ENV_SNAP_CONTROL_PLANE = "SCION_SNAP_CONTROL_PLANE";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String PROPERTY_SNAP_AUTH_TOKEN = "org.scion.snap.authToken";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String ENV_SNAP_AUTH_TOKEN = "SCION_SNAP_AUTH_TOKEN";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String PROPERTY_SNAP_PATH_SERVICE_DISCOVERY = "org.scion.snap.psDiscovery";
+
+  /** Optional SNAP token used for control-plane calls. */
+  public static final String ENV_SNAP_PATH_SERVICE_DISCOVERY = "SCION_SNAP_PS_DISCOVERY";
+
   /**
    * Timeout for calls to control plane services, such as the path service, in milliseconds. The
    * default is 10000 ms = 10 seconds.
