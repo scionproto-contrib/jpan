@@ -24,6 +24,7 @@ import java.util.Iterator;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
+import org.scion.jpan.internal.snap.SnapUnderlay;
 import org.scion.jpan.selectors.PathSelector;
 import org.scion.jpan.selectors.PathSelectorFactory;
 import org.scion.jpan.selectors.PathSelectorNull;
@@ -46,9 +47,10 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
       ScionService service,
       DatagramChannel channel,
       PathSelector connectSelector,
-      PathSelectorFactory factory)
+      PathSelectorFactory factory,
+      SnapUnderlay snapUnderlay)
       throws IOException {
-    super(service, channel, connectSelector, factory);
+    super(service, channel, connectSelector, factory, snapUnderlay);
 
     // selector
     this.selector = channel.provider().openSelector();
@@ -77,8 +79,10 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
         SelectionKey key = iter.next();
         iter.remove();
         if (key.isReadable()) {
-          java.nio.channels.DatagramChannel incoming = (DatagramChannel) key.channel();
-          InetSocketAddress srcAddress = (InetSocketAddress) incoming.receive(buffer);
+          // Goes through the SNAP-aware wrapper (decrypts if this channel routes through a SNAP
+          // tunnel) rather than reading key.channel() directly, which would otherwise deliver raw,
+          // still-encrypted SNAP wire bytes instead of the plaintext SCION packet.
+          InetSocketAddress srcAddress = receiveUnderlay(buffer);
           buffer.flip();
           if (validate(buffer)) {
             HeaderConstants.HdrTypes hdrType = ScionHeaderParser.extractNextHeader(buffer);
@@ -133,6 +137,15 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
         service = Scion.defaultService();
       }
 
+      SnapUnderlay snap = null;
+      if (service != null) {
+        snap = SnapUnderlay.tryCreate(service.getSnapDataPlane(), channel);
+        if (snap != null) {
+          // SNAP creates a channel if the incoming channel was 'null'.
+          channel = snap.transportChannel();
+        }
+      }
+
       if (channel == null) {
         channel = java.nio.channels.DatagramChannel.open();
       }
@@ -153,7 +166,7 @@ public class SelectingDatagramChannel extends ScionDatagramChannel {
         }
       }
 
-      return new SelectingDatagramChannel(service, channel, selector, factory);
+      return new SelectingDatagramChannel(service, channel, selector, factory, snap);
     }
   }
 }
