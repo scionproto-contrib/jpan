@@ -90,7 +90,7 @@ public class LocalAsFromFile {
     }
 
     return new LocalAS(
-        Collections.singleton(localIsdAs),
+        Collections.singletonList(localIsdAs),
         isCoreAs,
         localMtu,
         portRange,
