@@ -28,14 +28,14 @@ public class LocalAS {
   private final List<BorderRouter> borderRouters;
   private final List<SnapControlNode> snapControlNodes;
   private final Map<Integer, BorderRouter> interfaceIDs;
-  private final Set<Long> localIsdAs;
+  private final List<Long> localIsdAs;
   private final boolean isCoreAs;
   private final int localMtu;
   private final DispatcherPortRange portRange;
   private final TrcStore trcStore;
 
   LocalAS(
-      Set<Long> localIsdAs,
+      List<Long> localIsdAs,
       boolean isCoreAs,
       int localMtu,
       DispatcherPortRange portRange,
@@ -44,7 +44,7 @@ public class LocalAS {
       List<BorderRouter> borderRouters,
       List<SnapControlNode> snapControlNodes,
       TrcStore trcStore) {
-    this.localIsdAs = Collections.unmodifiableSet(localIsdAs);
+    this.localIsdAs = Collections.unmodifiableList(localIsdAs);
     this.isCoreAs = isCoreAs;
     this.localMtu = localMtu;
     this.portRange = portRange;
@@ -93,7 +93,7 @@ public class LocalAS {
   /**
    * @return the ISD/AS numbers of the local AS
    */
-  public Set<Long> getIsdAses() {
+  public List<Long> getIsdAses() {
     return localIsdAs;
   }
 

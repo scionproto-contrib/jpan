@@ -61,7 +61,7 @@ class LocalAsFromPathServiceTest {
 
     LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
 
-    assertEquals(Collections.singleton(SNAP_ISD_AS), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(SNAP_ISD_AS), localAS.getIsdAses());
   }
 
   @Test
@@ -79,7 +79,7 @@ class LocalAsFromPathServiceTest {
 
     LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
 
-    assertEquals(Collections.singleton(UDP_ISD_AS), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }
 
   @Test
@@ -108,7 +108,7 @@ class LocalAsFromPathServiceTest {
 
     LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
 
-    assertEquals(Collections.singleton(UDP_ISD_AS), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }
 
   @Test
@@ -146,7 +146,7 @@ class LocalAsFromPathServiceTest {
     assertEquals(2, localAS.getSnapControlNodes().size());
     // ...but only the first one's ISD/AS actually becomes reachable. The second SNAP node's AS is
     // silently unreachable through this LocalAS/ScionService instance.
-    assertEquals(Collections.singleton(SNAP_ISD_AS), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(SNAP_ISD_AS), localAS.getIsdAses());
     assertFalse(localAS.getIsdAses().contains(secondSnapIsdAs));
   }
 
@@ -164,7 +164,7 @@ class LocalAsFromPathServiceTest {
 
     LocalAS localAS = LocalAsFromPathService.create(candidates, TrcStore.createEmpty());
 
-    assertEquals(Collections.singleton(UDP_ISD_AS), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }
 
   private static Underlays.UdpUnderlay udpUnderlayWithOneRouter() {

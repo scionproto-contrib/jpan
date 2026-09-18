@@ -14,9 +14,6 @@
 
 package org.scion.jpan;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
 import org.scion.jpan.internal.header.PathRawParser;
 
 /** Scion utility functions. */
@@ -199,16 +196,6 @@ public class ScionUtil {
 
   public static long extractAs(long isdAs) {
     return isdAs & MAX_AS;
-  }
-
-  static InetSocketAddress parseInetSocketAddress(String addrStr) {
-    try {
-      int posColon = addrStr.indexOf(':');
-      InetAddress inetAddress = InetAddress.getByName(addrStr.substring(0, posColon));
-      return new InetSocketAddress(inetAddress, Integer.parseInt(addrStr.substring(posColon + 1)));
-    } catch (UnknownHostException e) {
-      throw new IllegalArgumentException(e);
-    }
   }
 
   public static boolean isWildcard(long isdAs) {

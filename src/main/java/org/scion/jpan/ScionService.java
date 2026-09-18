@@ -470,7 +470,10 @@ public class ScionService {
     return localAS.getIsdAs();
   }
 
-  public Set<Long> getLocalIsdAses() {
+  /**
+   * @return all local ISD/ASes
+   */
+  public List<Long> getLocalIsdAsList() {
     return localAS.getIsdAses();
   }
 
@@ -488,7 +491,7 @@ public class ScionService {
     if (pathService != null) {
       // query path service (new endhost API)
       list = new ArrayList<>();
-      for (Long srcIsdAs : getLocalIsdAses()) {
+      for (Long srcIsdAs : getLocalIsdAsList()) {
         list.addAll(getPathList(srcIsdAs, dstIsdAs));
       }
     } else {

@@ -687,9 +687,9 @@ class ScmpSenderAsyncTest {
 
   private Path getPathToLocalAS(InetSocketAddress address) {
     ScionService service = Scion.defaultService();
-    Set<Long> dstIA = service.getLocalIsdAses();
+    List<Long> dstIA = service.getLocalIsdAsList();
     // Service address
-    List<Path> paths = service.getPaths(dstIA.iterator().next(), address);
+    List<Path> paths = service.getPaths(dstIA.get(0), address);
     return paths.get(0);
   }
 

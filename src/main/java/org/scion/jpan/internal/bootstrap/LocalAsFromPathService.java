@@ -43,7 +43,7 @@ public class LocalAsFromPathService {
 
     if (Config.isUnderlaySnapAllowed()) {
       // Note that the SNAP AS may be different from the expected local AS of a local ISP.
-      Set<Long> snapIsdAses = getLocalIsdAsFromSnap(u);
+      List<Long> snapIsdAses = getLocalIsdAsFromSnap(u);
       if (!snapIsdAses.isEmpty()) {
         List<LocalAS.BorderRouter> brList =
             u.hasUdp() ? getBorderRouterList(u) : Collections.emptyList();
@@ -67,10 +67,11 @@ public class LocalAsFromPathService {
       throw new ScionRuntimeException(
           "No usable underlay: endhost API returned no UDP routers and no usable SNAP entry");
     }
-    Set<Long> isdAs =
+    List<Long> isdAs =
         u.getUdp().getRoutersList().stream()
             .map(Underlays.Router::getIsdAs)
-            .collect(Collectors.toSet());
+            .distinct()
+            .collect(Collectors.toList());
     List<LocalAS.BorderRouter> brList = getBorderRouterList(u);
     return new LocalAS(
         isdAs,
@@ -126,15 +127,15 @@ public class LocalAsFromPathService {
     return snaps;
   }
 
-  private static Set<Long> getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
+  private static List<Long> getLocalIsdAsFromSnap(Underlays.ListUnderlaysResponse u) {
     if (!u.hasSnap() || u.getSnap().getSnapsCount() == 0) {
-      return Collections.emptySet();
+      return Collections.emptyList();
     }
     Underlays.Snap snap = u.getSnap().getSnaps(0);
     if (snap.getIsdAsesCount() == 0) {
-      return Collections.emptySet();
+      return Collections.emptyList();
     }
-    return new HashSet<>(snap.getIsdAsesList());
+    return new ArrayList<>(snap.getIsdAsesList());
   }
 
   private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {

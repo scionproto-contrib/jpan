@@ -99,7 +99,7 @@ class LocalAsFromPathServiceHttpsTest {
 
     LocalAS localAS = LocalAsFromPathService.create(endpoint, TrcStore.createEmpty());
 
-    assertEquals(Collections.singleton(testIsdAs), localAS.getIsdAses());
+    assertEquals(Collections.singletonList(testIsdAs), localAS.getIsdAses());
 
     RecordedRequest recorded = server.takeRequest(2, TimeUnit.SECONDS);
     assertNotNull(recorded, "endhost API never received a request");

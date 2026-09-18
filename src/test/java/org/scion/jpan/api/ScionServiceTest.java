@@ -594,7 +594,7 @@ class ScionServiceTest {
       String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
       assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
+      assertTrue(service.getLocalIsdAsList().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();
@@ -613,7 +613,7 @@ class ScionServiceTest {
       String address = TestUtil.toString(MockNetwork.getTopoServer().getAddress());
       assertEquals(address, DNSHelper.searchForDiscoveryService());
       ScionService service = Scion.defaultService();
-      assertTrue(service.getLocalIsdAses().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
+      assertTrue(service.getLocalIsdAsList().contains(MockNetwork.getTopoServer().getLocalIsdAs()));
     } finally {
       Lookup.setDefaultSearchPath(Collections.emptyList());
       MockNetwork.stopTiny();

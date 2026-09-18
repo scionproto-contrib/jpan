@@ -243,6 +243,9 @@ TODO
   [#246](https://github.com/scionproto-contrib/jpan/issues/246)
 - Clean up PathMetadata.Builder.
   [#274](https://github.com/scionproto-contrib/jpan/pull/274)
+- **BREAKING CHANGE**: `ScionService.getIsdAses()` now returns a `List`
+  instead of a `Set`. Lists are easier to use and allow rankings.
+  [#289](https://github.com/scionproto-contrib/jpan/pull/289)
 
 ### Removed
 

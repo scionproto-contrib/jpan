@@ -118,7 +118,7 @@ public class ScmpTracerouteDemo {
     InetSocketAddress destinationAddress = IPHelper.toInetSocketAddress("[::1]:12345");
     List<Path> paths = service.getPaths(destinationIA, destinationAddress);
     if (paths.isEmpty()) {
-      String src = ScionUtil.toStringIA(service.getLocalIsdAses().iterator().next());
+      String src = ScionUtil.toStringIA(service.getLocalIsdAsList().get(0));
       String dst = ScionUtil.toStringIA(destinationIA);
       throw new IOException("No path found from " + src + " to " + dst);
     }
