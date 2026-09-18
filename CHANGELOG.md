@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ### TODO for 0.8.0 and beyond
 
 ## TODO
-- FIx PathSelectorWithRefreshTest.autoRefresh(): The test makes no sense, the PathSelector
+- Check latest proto files in scion-sdk
+- Check scion-sdk version flag in http API
+- Fix PathSelectorWithRefreshTest.autoRefresh(): The test makes no sense, the PathSelector
   is not triggered by paths that expire "soon". We should simply test (counter in PP)
    the refresh is called with 1 second. No need to create an expired path.
 - Add ScionUtil.parseScionAddress("64-2:0:9,[123.123.123.123]);

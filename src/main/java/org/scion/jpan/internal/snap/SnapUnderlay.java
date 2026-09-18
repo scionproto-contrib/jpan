@@ -117,7 +117,9 @@ public final class SnapUnderlay {
     return tunnel.receivePacket(buffer);
   }
 
-  /** @see SnapTunnel#configureBlocking(boolean) */
+  /**
+   * @see SnapTunnel#configureBlocking(boolean)
+   */
   public void configureBlocking(boolean block) {
     tunnel.configureBlocking(block);
   }

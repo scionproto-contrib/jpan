@@ -74,14 +74,17 @@ public class SnapControlClient {
     this.baseUrl = normalizeBaseUrl(endpoint);
   }
 
-  private static boolean verifyHostname(String hostname, SSLSession session) {
+  // Package-private (rather than private) so SnapControlClientWhiteboxTest can exercise these
+  // branches directly.
+
+  static boolean verifyHostname(String hostname, SSLSession session) {
     if (!isIpLiteral(hostname) && !DEFAULT_VERIFIER.verify(hostname, session)) {
       LOG.warn("Hostname \"{}\" could not be verified.", hostname);
     }
     return true;
   }
 
-  private static boolean isIpLiteral(String host) {
+  static boolean isIpLiteral(String host) {
     // IPv6 literals always contain ':', which is never valid in a DNS hostname.
     return host.indexOf(':') >= 0 || IPV4_LITERAL.matcher(host).matches();
   }
@@ -172,7 +175,7 @@ public class SnapControlClient {
     return builder;
   }
 
-  private static SocketAddress parseAddress(String hostPort) {
+  static SocketAddress parseAddress(String hostPort) {
     int split = hostPort.lastIndexOf(':');
     if (split <= 0 || split >= hostPort.length() - 1) {
       throw new IllegalArgumentException("invalid host:port address " + hostPort);
@@ -182,7 +185,7 @@ public class SnapControlClient {
     return new InetSocketAddress(host, port);
   }
 
-  private static String normalizeBaseUrl(String endpoint) {
+  static String normalizeBaseUrl(String endpoint) {
     if (endpoint == null || endpoint.isEmpty()) {
       throw new IllegalArgumentException("endpoint must not be empty");
     }
