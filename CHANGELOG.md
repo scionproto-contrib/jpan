@@ -12,9 +12,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## TODO
 - Check latest proto files in scion-sdk
 - Check scion-sdk version flag in http API
-- Fix PathSelectorWithRefreshTest.autoRefresh(): The test makes no sense, the PathSelector
-  is not triggered by paths that expire "soon". We should simply test (counter in PP)
-   the refresh is called with 1 second. No need to create an expired path.
 - Add ScionUtil.parseScionAddress("64-2:0:9,[123.123.123.123]);
   - Removed ScionUtil.parseInetAddress
 - Performance TODO: When connected: buffer complete SCION header i.o. building it
@@ -235,6 +232,8 @@ TODO
   [#273](https://github.com/scionproto-contrib/jpan/pull/273)
 - Fixed missing interface ids when querying daemon for border routers.
   [#276](https://github.com/scionproto-contrib/jpan/pull/276)
+- Fixed flaky test: `PathSelectorWithRefreshTest.autoRefresh()`
+  [#288](https://github.com/scionproto-contrib/jpan/pull/288)
 
 ### Changed
 
