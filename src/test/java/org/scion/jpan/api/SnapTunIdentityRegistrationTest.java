@@ -35,14 +35,11 @@ import org.scion.jpan.testutil.MockSnapService;
  * Covers {@code SnapControlClient.registerSnapTunIdentity()} through the real, public {@code
  * ScionDatagramChannel} API rather than by calling {@code internal.snap} classes directly.
  *
- * <p>{@code registerSnapTunIdentity()} is only ever invoked by {@code SnapTunnel} when the {@code
- * GetSnapDataPlaneAddress} response advertises a {@code snap_tun_control_address} -- an optional
- * field that none of the other SNAP API tests set, so this code path (and the tun-identity/PSK
- * exchange step of the handshake) was otherwise never exercised end-to-end. {@link
- * MockSnapService#enableSnapTunControlAddress()} makes the mock advertise its own control URL for
- * that field, so the client's tun-control {@code SnapControlClient} genuinely round-trips an HTTP
- * request to the same mock server that {@link MockSnapService#getRegisterIdentityCallCount()}
- * observes.
+ * <p>{@code SnapTunnel} only calls {@code registerSnapTunIdentity()} when the dataplane response
+ * advertises a {@code snap_tun_control_address}, an optional field the other SNAP API tests leave
+ * unset. {@link MockSnapService#enableSnapTunControlAddress()} makes the mock advertise its own
+ * control URL for that field, so the client genuinely round-trips an HTTP request to it, observed
+ * via {@link MockSnapService#getRegisterIdentityCallCount()}.
  */
 class SnapTunIdentityRegistrationTest {
 
@@ -76,13 +73,11 @@ class SnapTunIdentityRegistrationTest {
         byte[] sent = {1, 2, 3};
         channel.send(ByteBuffer.wrap(sent), path);
 
-        // The handshake must have gone through SnapControlClient.registerSnapTunIdentity() against
-        // the mock's control server -- not skipped, as it would be if no snap_tun_control_address
-        // had been advertised.
+        // The handshake must have called registerSnapTunIdentity() against the mock's control
+        // server.
         assertEquals(1, snap.getRegisterIdentityCallCount());
 
-        // And the handshake -- built on the identity/PSK share exchanged in that call -- still
-        // works end-to-end: data genuinely round-trips through the mirror.
+        // And the resulting handshake still works end-to-end: data round-trips through the mirror.
         ByteBuffer recvBuf = ByteBuffer.allocate(1024);
         ScionPathAddress from = receiveWithRetry(channel, recvBuf);
         assertNotNull(from, "expected the mirrored reply to come back through the SNAP tunnel");

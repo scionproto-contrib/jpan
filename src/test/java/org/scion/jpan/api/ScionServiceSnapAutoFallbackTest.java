@@ -30,16 +30,12 @@ import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Covers {@code org.scion.underlay.mode=auto}: SNAP should be used opportunistically, but a missing
- * or unreachable SNAP control endpoint must fall back to a plain UDP underlay instead of failing
- * {@code ScionService}/channel construction outright. Before the fix, both {@code
- * ScionService.initializeSnapDataPlaneIfEnabled()} and {@code SnapUnderlay.tryCreate()} threw a
- * hard {@code ScionRuntimeException} for {@code auto} exactly as they do for a strict {@code snap}
- * mode, so an unrelated, transient SNAP outage could break an application that never asked for SNAP
- * specifically.
+ * or unreachable SNAP control endpoint must fall back to plain UDP rather than failing {@code
+ * ScionService}/channel construction, so a transient SNAP outage can't break an application that
+ * never asked for SNAP specifically.
  *
- * <p>None of these tests configure any SNAP control-plane entry ({@link MockNetwork2#startPS}, not
- * {@code startSnap}), so the endhost API genuinely advertises no usable SNAP entry -- this is not
- * an artificial gap.
+ * <p>None of these tests configure a SNAP control-plane entry ({@link MockNetwork2#startPS}, not
+ * {@code startSnap}), so the endhost API genuinely advertises no usable SNAP entry.
  */
 class ScionServiceSnapAutoFallbackTest {
 

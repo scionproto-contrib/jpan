@@ -38,13 +38,11 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.proto.snap.ControlService;
 
 /**
- * Whitebox coverage for {@link SnapControlClient} branches that the higher-level SNAP API tests
- * never exercise, since they only ever drive "everything works" round trips against a real,
- * always-plain-HTTP {@code MockSnapService}: URL normalization, address parsing, the
- * failOnError=true/false split in {@link SnapControlClient#getDataPlaneAddress}, {@link
- * SnapControlClient#registerSnapTunIdentity}'s validation and response handling, the Authorization
- * header, and hostname verification over a genuine TLS connection (which a plain-HTTP mock never
- * negotiates in the first place).
+ * Whitebox coverage for {@link SnapControlClient} branches the higher-level (always-plain-HTTP)
+ * SNAP API tests never exercise: URL normalization, address parsing, the failOnError=true/false
+ * split in {@link SnapControlClient#getDataPlaneAddress}, {@link
+ * SnapControlClient#registerSnapTunIdentity}'s validation/response handling, the Authorization
+ * header, and hostname verification over a genuine TLS connection.
  */
 class SnapControlClientWhiteboxTest {
 

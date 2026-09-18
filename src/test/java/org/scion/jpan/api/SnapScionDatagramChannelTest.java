@@ -34,18 +34,15 @@ import org.scion.jpan.testutil.*;
 
 /**
  * Covers {@link ScionDatagramChannel} wired up for SNAP end-to-end through the real, public {@code
- * ScionDatagramChannel.Builder} -- i.e. through {@code SnapUnderlay.createFor()} exactly as
- * production code does, backed by a real (mock) {@link ScionService} whose {@code
- * preferSnapUnderlay()}/{@code getSnapDataPlane()} point at a genuinely running {@code
- * MockSnapService} dataplane+control server (via {@link MockNetwork2#startSnap}).
+ * ScionDatagramChannel.Builder}, backed by a real (mock) {@link ScionService} pointed at a running
+ * {@code MockSnapService} (via {@link MockNetwork2#startSnap}). SNAP is enabled purely via system
+ * properties, matching real application configuration, so this also exercises the endhost-API/
+ * AA-token bootstrap flow, not just the tunnel crypto.
  *
- * <p>Neither test here constructs a {@code SnapTunnel} (or any other {@code internal.snap} class)
- * directly -- SNAP is enabled purely via system properties, matching how a real application would
- * configure it, so this also exercises the actual bootstrap wiring (endhost-API/AA-token flow
- * included), not just the tunnel crypto in isolation. Both tests also verify {@code send()}
- * actually delivers data, not just that it doesn't throw: {@code MockSnapService} is pointed at a
- * {@link MockEchoServer} -- a plain, non-SNAP UDP echo -- so the sent bytes genuinely leave the
- * tunnel, come back, and are picked up by a real {@code receive()} call.
+ * <p>The {@code send_*} tests verify {@code send()} actually delivers data: {@code MockSnapService}
+ * relays through a {@link MockEchoServer} -- a plain, non-SNAP UDP echo -- so the sent bytes
+ * genuinely leave the tunnel, come back, and are picked up by {@code receive()}. The {@code
+ * isBlocking_*} tests cover {@code configureBlocking()}/{@code isBlocking()} on a SNAP channel.
  */
 class SnapScionDatagramChannelTest {
 
@@ -77,9 +74,8 @@ class SnapScionDatagramChannelTest {
         byte[] sent = {1, 2, 3};
         channel.send(ByteBuffer.wrap(sent), path);
 
-        // The SNAP tunnel's server-assigned address must be installed as the SCION source address
-        // BEFORE the header is built -- this is the fix for JPAN previously using the wrong
-        // (NAT-mapped/local) source address for all SNAP traffic.
+        // The SNAP tunnel's server-assigned address must be installed as the SCION source
+        // address, not a NAT-mapped/local one.
         assertNotNull(channel.getOverrideSourceAddress());
 
         // And the data must actually have gone somewhere and come back: the mirror server (a
@@ -98,13 +94,10 @@ class SnapScionDatagramChannelTest {
   @Test
   void send_withApiKeyAuthFlow_installsSnapAssignedSourceAddressAndIsReceivedBack()
       throws Exception {
-    // Exercises the full API-key -> AA token -> SNAP control -> handshake chain, purely via
-    // properties: MockNetwork2.startSnap() already points PROPERTY_SNAP_CONTROL_PLANE at its
-    // MockSnapService, but also pre-sets a plain PROPERTY_SNAP_AUTH_TOKEN directly. Setting
-    // PROPERTY_SNAP_AUTH_SERVICE/PROPERTY_SNAP_AUTH_KEY on top of that makes
-    // Scion.defaultService() take the API-key branch instead, fetching a real token from
-    // MockSnapApiTokenService and overwriting the token property with it before falling back to
-    // the already-configured path service (the AA mock returns no discovery URL).
+    // Exercises the full API-key -> AA token -> SNAP control -> handshake chain: setting
+    // PROPERTY_SNAP_AUTH_SERVICE/PROPERTY_SNAP_AUTH_KEY makes Scion.defaultService() fetch a real
+    // token from MockSnapApiTokenService and overwrite PROPERTY_SNAP_AUTH_TOKEN with it, before
+    // falling back to the path service MockNetwork2.startSnap() already configured.
     try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
         MockSnapApiTokenService aaService = MockSnapApiTokenService.start();
         MockEchoServer mirror = MockEchoServer.start()) {

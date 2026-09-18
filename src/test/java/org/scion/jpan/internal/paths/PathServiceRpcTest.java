@@ -29,9 +29,9 @@ import org.scion.jpan.proto.endhost.Underlays;
 import org.scion.jpan.testutil.SimpleHttpServer;
 
 /**
- * {@link PathServiceRpc} previously had no test coverage at all -- including for its use of {@link
- * org.scion.jpan.internal.util.HttpEndpoint}, applied identically to {@link
- * LocalAsFromPathService}. This covers a basic segment-fetch round trip.
+ * Covers a basic segment-fetch round trip through {@link PathServiceRpc}, including its use of
+ * {@link org.scion.jpan.internal.util.HttpEndpoint} (applied identically to {@link
+ * LocalAsFromPathService}).
  */
 class PathServiceRpcTest {
 

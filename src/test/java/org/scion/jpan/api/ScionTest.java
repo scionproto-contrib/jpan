@@ -386,14 +386,12 @@ class ScionTest {
 
   @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange_snap() throws Exception {
-    // A SNAP-mode channel should not respect the port range: the ports are only useful when
-    // communicating directly with a border router, and assigning a fixed port can actually cause
-    // problems because SNAP takes a long time to free up previously used ports -- see
-    // AbstractScionChannel.ensureBound()'s "snapUnderlay == null && ports.hasPortRange()" guard.
-    // Note: LocalAsFromPathService's SNAP branch always reports DispatcherPortRange.createAll()
-    // regardless of the real topology's configured range, so there is no longer a real narrow
-    // range to prove SNAP avoids -- this just confirms a SNAP channel binds to an ephemeral port
-    // rather than a suspicious, dispatcher-range-looking one such as 31000.
+    // A SNAP-mode channel should not respect the port range: fixed ports are only useful for
+    // talking directly to a border router, and SNAP's slow port reuse can make binding one fail
+    // (see AbstractScionChannel.ensureBound()'s "snapUnderlay == null && ports.hasPortRange()"
+    // guard). LocalAsFromPathService's SNAP branch always reports
+    // DispatcherPortRange.createAll(), so this only confirms the channel binds to an ephemeral
+    // port rather than a dispatcher-range one like 31000.
     try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
         MockEchoServer mirror = MockEchoServer.start()) {
       nw.getSnapService().relayTo(mirror.getAddress());

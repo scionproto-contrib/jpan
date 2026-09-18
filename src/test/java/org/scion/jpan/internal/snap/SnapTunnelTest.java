@@ -65,12 +65,10 @@ class SnapTunnelTest {
     byte[] scionPacket = new byte[123];
     int sent = session.sendPacket(scionPacket);
 
-    // Before the fix, this returned scionPacket.length + 32 (the WireGuard data-header + AEAD
-    // tag overhead added by encrypt()) -- the size of the packet actually on the wire, not the
-    // number of SCION-level bytes the caller asked to send. Callers such as
-    // ScionDatagramChannel.send() subtract their own header size from this return value to report
-    // "payload bytes sent" to the API user, so leaking the WireGuard overhead here made send()
-    // report too many bytes.
+    // Must return the number of SCION-level bytes sent, not the WireGuard-encrypted wire size
+    // (32 bytes larger, for the data header + AEAD tag): callers like ScionDatagramChannel.send()
+    // subtract their own header size from this return value to report "payload bytes sent" to the
+    // API user.
     assertEquals(scionPacket.length, sent);
   }
 
@@ -90,11 +88,10 @@ class SnapTunnelTest {
 
   @Test
   void receivePacket_decryptsRealDataPacketFromDataPlane() throws IOException {
-    // Coverage gap this closes: every other SnapTunnel test only ever sends (encrypt()) -- none
-    // ever receives a real post-handshake WireGuard data packet, so decrypt() was never actually
-    // exercised. MockSnapService relays every data packet through an internal MockEchoServer by
-    // default (no relayTo() call needed), which lets receivePacket() drive the real AEAD-decrypt
-    // path on a genuine round trip instead of just the handshake crypto.
+    // No other SnapTunnel test receives a real post-handshake WireGuard data packet (they only
+    // send), so decrypt() is otherwise unexercised. MockSnapService relays every data packet
+    // through an internal MockEchoServer by default, letting receivePacket() drive the real
+    // AEAD-decrypt path.
     SnapTunnel session =
         new SnapTunnel(
             null,
@@ -178,12 +175,9 @@ class SnapTunnelTest {
   void ensureConnected_ipv6BoundChannel_failsFastInsteadOfTimingOut() {
     // An explicit INET6 channel is guaranteed to end up bound to an IPv6 local address (unlike a
     // family-unspecified DatagramChannel.open(), whose resolved family is platform-dependent),
-    // while
-    // still being able to send() to the mock's IPv4 dataplane address without throwing -- JDK INET6
-    // channels are dual-stack-capable. This deterministically reproduces the address-family
-    // mismatch
-    // that a caller-supplied channel could previously trigger, without the flakiness of relying on
-    // a
+    // while still being able to send() to the mock's IPv4 dataplane address without throwing --
+    // JDK INET6 channels are dual-stack-capable. This deterministically reproduces the
+    // address-family mismatch a caller-supplied channel can trigger, without depending on a
     // particular platform's default channel family.
     DatagramChannel ipv6Channel;
     try {
@@ -204,8 +198,8 @@ class SnapTunnelTest {
     long elapsedMs = (System.nanoTime() - startNanos) / 1_000_000;
 
     assertTrue(ex.getMessage().contains("IPv4"), "unexpected message: " + ex.getMessage());
-    // Before the fix, this failure only ever surfaced after the ~5s handshake-response timeout
-    // (the response from the IPv4-only mock never matches on an IPv6-bound socket).
+    // The response from the IPv4-only mock never matches on an IPv6-bound socket, so this must
+    // fail fast rather than only after the handshake-response timeout.
     assertTrue(elapsedMs < 2000, "expected a fast failure, took " + elapsedMs + "ms");
   }
 
@@ -245,10 +239,10 @@ class SnapTunnelTest {
 
   @Test
   void receivePacket_blockingMode_doesNotBlockConcurrentSendPacket() throws Exception {
-    // Regression guard for the concurrency hazard a naively-blocking receivePacket() would
-    // introduce: receivePacket() must not be `synchronized` for its whole (potentially indefinite)
-    // duration, or a blocked reader thread would starve a concurrent writer thread indefinitely --
-    // exactly the thing a real (blocking) DatagramChannel does not do.
+    // receivePacket() must not hold a lock for its whole (potentially indefinite) blocking
+    // duration, or a blocked reader thread would starve a concurrent writer thread -- unlike a
+    // real (blocking) DatagramChannel, which allows one concurrent reader and one concurrent
+    // writer.
     SnapTunnel session =
         new SnapTunnel(
             null,

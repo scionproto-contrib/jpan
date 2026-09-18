@@ -52,19 +52,15 @@ public final class SnapUnderlay {
             "SNAP mode requested but no SNAP dataplane/static key available");
       }
       // mode=auto: no SNAP dataplane was resolved (see
-      // ScionService.initializeSnapDataPlaneIfEnabled),
-      // fall back to a plain UDP underlay instead of failing channel construction.
+      // ScionService.initializeSnapDataPlaneIfEnabled) -- fall back to plain UDP instead of
+      // failing channel construction.
       return null;
     }
 
-    // Snap requires an IPv4 ({@link StandardProtocolFamily#INET}) channel: the SNAP dataplane is
-    // IPv4-only, but a platform-default {@link DatagramChannel#open()} can come back
-    // IPv6/dual-stack depending on JVM/platform defaults (observed to vary even across runs on
-    // the same machine).
-    // Since this channel is now also SnapUnderlay's real transport channel, that mismatch silently
-    // breaks the WireGuard handshake -- the handshake-init "send" reports success,
-    // but the response from the (address-family-mismatched) dataplane is never received/matched, so
-    // it just times out.
+    // SNAP requires an IPv4 channel: the dataplane is IPv4-only, but a platform-default
+    // DatagramChannel#open() can come back IPv6/dual-stack depending on the JVM/platform (this
+    // varies even across runs on the same machine). Since this channel becomes SnapUnderlay's real
+    // transport, that mismatch would otherwise only surface as a slow handshake timeout.
     if (channel == null) {
       try {
         channel = DatagramChannel.open(StandardProtocolFamily.INET);
@@ -88,11 +84,7 @@ public final class SnapUnderlay {
     return tunnel == null ? null : new SnapUnderlay(tunnel);
   }
 
-  /**
-   * Builds a SNAP tunnel from already-resolved SNAP dataplane configuration. Callers that only have
-   * a {@code ScionService} (rather than these already-resolved pieces) should go through {@code
-   * org.scion.jpan.SnapUnderlaySupport} instead, which resolves them.
-   */
+  /** Builds a SNAP tunnel from already-resolved SNAP dataplane configuration. */
   private static SnapUnderlay create(
       DatagramChannel channel,
       InetSocketAddress dataPlaneAddress,

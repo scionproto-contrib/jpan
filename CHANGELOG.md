@@ -184,9 +184,7 @@ TODO
 
 - SNAP support
   [#271](https://github.com/scionproto-contrib/jpan/pull/271)
-### TODO
-- Fix tons of: "Not sending SNAP auth token to insecure (non-https)"
-- Ask to make tests and (java)docs more concise.
+
 ### Added
 
 - PathSelector API.

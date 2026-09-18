@@ -32,20 +32,15 @@ import org.scion.jpan.testutil.MockNetwork2;
 
 /**
  * Covers {@link ScmpSenderAsync} wired up for SNAP end-to-end through the real, public {@link
- * ScmpSenderAsync.Builder} -- i.e. through {@code SnapUnderlay.createFor()} exactly as production
- * code does, backed by a real (mock) {@code ScionService} whose {@code preferSnapUnderlay()}/{@code
- * getSnapDataPlane()} point at a genuinely running {@link org.scion.jpan.testutil.MockSnapService}
- * dataplane+control server (via {@link MockNetwork2#startSnap}).
+ * ScmpSenderAsync.Builder}, backed by a real (mock) {@code ScionService} pointed at a genuinely
+ * running {@link org.scion.jpan.testutil.MockSnapService} (via {@link MockNetwork2#startSnap}).
  *
  * <p>There is no mock border router wired into this path (unlike the older {@code MockNetwork} +
- * {@code MockScmpHandler} used by {@link ScmpSenderAsyncTest}), so this cannot assert an actual
- * SCMP reply -- {@code MockNetwork} and {@code MockNetwork2} are independent mocks that don't
- * compose (both drive the {@code Scion.defaultService()} singleton via conflicting system
- * properties). What this test does cover, exercising exactly the machinery that regressed
- * repeatedly during the channel-reuse work (see doc/SnapChannelAbstraction.md): building the
- * channel via the real SNAP-aware {@code Builder} path, completing the real WireGuard handshake,
- * installing the SNAP-assigned source address, actually encrypting and sending SCMP echo and
- * traceroute requests over the tunnel, and a clean, non-throwing {@code close()} afterward.
+ * {@code MockScmpHandler} used by {@link ScmpSenderAsyncTest}, an independent mock that doesn't
+ * compose with {@code MockNetwork2}), so this cannot assert an actual SCMP reply. It does cover
+ * building the channel via the real SNAP-aware {@code Builder} path, completing the real WireGuard
+ * handshake, installing the SNAP-assigned source address, encrypting and sending SCMP
+ * echo/traceroute requests over the tunnel, and a clean, non-throwing {@code close()}.
  */
 class ScmpSenderAsyncSnapTest {
 

@@ -30,8 +30,7 @@ import org.scion.jpan.testutil.SimpleHttpServer;
 /**
  * Covers the local-AS derivation branches in {@link LocalAsFromPathService#create}: preferring a
  * SNAP entry's ISD-AS over the native UDP underlay's when SNAP is preferred, falling back to the
- * UDP underlay when no usable SNAP entry is advertised, and failing loudly when neither is usable
- * -- as opposed to the pre-fix behavior of silently adopting an unrelated native AS.
+ * UDP underlay when no usable SNAP entry is advertised, and failing loudly when neither is usable.
  */
 class LocalAsFromPathServiceTest {
 
@@ -51,8 +50,7 @@ class LocalAsFromPathServiceTest {
   @Test
   void create_snapPreferred_usableSnapEntry_prefersSnapIsdAs() throws IOException {
     // Both a UDP router AND a usable SNAP entry are present; SNAP must win because it is
-    // preferred, even though a native AS is also available (this is the exact scenario that
-    // previously caused JPAN to silently pick the wrong AS for SNAP-tunneled traffic).
+    // preferred, even though a native AS is also available.
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()
             .setUdp(
@@ -107,11 +105,7 @@ class LocalAsFromPathServiceTest {
 
   @Test
   void create_snapPreferred_noUsableSnapOrUdp_throws() throws IOException {
-    // TODO
-    // Neither underlay is usable. The old code path here was a stub that threw
-    // UnsupportedOperationException unconditionally, regardless of input (`if (true) throw ...`).
-    // The new code only throws for this specific case (no usable SNAP entry AND no UDP routers);
-    // it must fail with a clear ScionRuntimeException instead of that dead stub.
+    // Neither underlay is usable: must fail with a clear ScionRuntimeException.
     Underlays.ListUnderlaysResponse response = Underlays.ListUnderlaysResponse.newBuilder().build();
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
@@ -124,7 +118,7 @@ class LocalAsFromPathServiceTest {
   @Test
   void create_snapNotPreferred_ignoresSnapEntry_usesUdpIsdAs() throws IOException {
     // SNAP mode is not enabled: even though a usable SNAP entry is advertised, it must be
-    // ignored and the native UDP AS used, exactly as before this change.
+    // ignored and the native UDP AS used.
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()
             .setUdp(
@@ -154,16 +148,13 @@ class LocalAsFromPathServiceTest {
 
   @Test
   void create_multipleSnapNodes_onlyFirstIsdAsSetIsUsed_knownLimitation() throws IOException {
-    // Known limitation, not yet fixed: when the endhost API advertises more than one usable SNAP
-    // node -- e.g. because this host can reach two different tenant ASes through two different
-    // SNAP nodes -- JPAN only ever looks at the first one (LocalAsFromPathService uses
-    // u.getSnap().getSnaps(0) exclusively). The second node's ISD/AS set is silently dropped from
-    // localAS.getIsdAses(), even though both nodes are preserved in localAS.getSnapNodes(). A real
-    // fix would need ScionService to resolve and hold a dataplane connection per SnapControlNode
-    // (keyed by
-    // reachable ISD/AS), not a single one -- which is a bigger change than where this address is
-    // stored (see LocalASTest for the fix to the separate, now-resolved "single global first-hop
-    // address" problem).
+    // Known limitation: when the endhost API advertises more than one usable SNAP node -- e.g.
+    // because this host can reach two tenant ASes through two different SNAP nodes -- JPAN only
+    // looks at the first one (LocalAsFromPathService uses u.getSnap().getSnaps(0) exclusively).
+    // The second node's ISD/AS set is silently dropped from localAS.getIsdAses(), even though both
+    // nodes are preserved in localAS.getSnapControlNodes(). A real fix needs ScionService to
+    // resolve and hold a dataplane connection per SnapControlNode, keyed by reachable ISD/AS, not
+    // just one.
     long secondSnapIsdAs = ScionUtil.parseIA("64-3:0:0");
     Underlays.ListUnderlaysResponse response =
         Underlays.ListUnderlaysResponse.newBuilder()

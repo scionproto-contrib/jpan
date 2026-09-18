@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 
-/** SCMP traceroute demo for JPAN using Endhost API bootstrap and SNAP underlay encapsulation. */
+/** Plain SCION UDP packet send/receive demo for JPAN using Endhost API bootstrap and SNAP. */
 public class SnapPacketDemo {
 
   public static boolean PRINT = true;

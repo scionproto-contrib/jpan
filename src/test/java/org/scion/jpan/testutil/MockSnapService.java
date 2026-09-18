@@ -418,6 +418,9 @@ public class MockSnapService implements AutoCloseable {
     } catch (InvalidCipherTextException e) {
       log.error("MockSnapService: crypto error decrypting client packet for relay", e);
       return null;
+    } catch (ClosedChannelException e) {
+      // Ignore: benign shutdown race if close() runs concurrently with the relay.
+      return null;
     } catch (IOException e) {
       log.error("MockSnapService: error relaying through mirror {}", remoteAddress, e);
       return null;

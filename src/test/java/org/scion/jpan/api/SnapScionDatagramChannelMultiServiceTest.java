@@ -39,16 +39,15 @@ import org.scion.jpan.testutil.MockSnapService;
 /**
  * Covers two independent, genuinely concurrent SNAP tunnels -- each backed by its own {@link
  * MockSnapService} and its own, independently-constructed {@link org.scion.jpan.ScionService} (via
- * {@link Scion#newServiceWithEndhostApi}) -- being handshaked and used at the same time from two
- * separate {@link ScionDatagramChannel}s in the same process. This guards against per-tunnel state
- * (crypto session, assigned tunnel address, resolved SNAP dataplane) accidentally leaking across
- * independent SNAP channels.
+ * {@link Scion#newServiceWithEndhostApi}) -- handshaked and used at the same time from two separate
+ * {@link ScionDatagramChannel}s. This guards against per-tunnel state (crypto session, assigned
+ * tunnel address, resolved SNAP dataplane) leaking across independent SNAP channels.
  *
- * <p>SNAP is enabled purely via system properties here, not by constructing a {@code SnapTunnel}
- * directly. That does mean the two {@link org.scion.jpan.ScionService} instances can't be {@link
- * Scion#defaultService()} (a single, process-wide singleton, so it cannot represent two
- * independently-configured SNAP dataplanes at once) -- {@link Scion#newServiceWithEndhostApi}
- * exists specifically to build extra, independent instances like this one for exactly this case.
+ * <p>SNAP is enabled purely via system properties, not by constructing a {@code SnapTunnel}
+ * directly. The two {@link org.scion.jpan.ScionService} instances can't be {@link
+ * Scion#defaultService()} -- a single, process-wide singleton that can't represent two
+ * independently-configured SNAP dataplanes at once -- so {@link Scion#newServiceWithEndhostApi}
+ * builds the extra, independent instances this test needs.
  */
 class SnapScionDatagramChannelMultiServiceTest {
 

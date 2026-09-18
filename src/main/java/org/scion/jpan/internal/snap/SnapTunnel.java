@@ -153,11 +153,10 @@ public class SnapTunnel {
   private volatile boolean blocking;
 
   /**
-   * @param underlay The real channel to carry SNAP/WireGuard traffic. If non-null, it is adopted
-   *     as-is. If null (e.g. in tests that don't have a real outer channel to share), a fresh one
-   *     is opened instead. Either way the channel is left unbound -- binding is always the caller's
-   *     responsibility, so that a caller who needs a specific port or the SCION dispatcher port
-   *     range gets to bind it before this session ever sends/receives on it.
+   * @param underlay The real channel to carry SNAP/WireGuard traffic; if null, a fresh one is
+   *     opened. Either way it is left unbound -- binding is always the caller's responsibility, so
+   *     a caller needing a specific port or the SCION dispatcher range can bind before this session
+   *     sends/receives.
    */
   public SnapTunnel(
       DatagramChannel underlay,
@@ -179,11 +178,9 @@ public class SnapTunnel {
   }
 
   /**
-   * Configures whether {@link #receivePacket} blocks (without busy-polling, via the internal
-   * selector) until data is available, or returns {@code null} immediately when none is -- mirrors
-   * {@link DatagramChannel#configureBlocking}. The real underlay channel itself always stays
-   * non-blocking at the OS/NIO level (the handshake logic and selector registration depend on
-   * that); "blocking" is emulated purely at this level.
+   * Configures whether {@link #receivePacket} blocks until data is available or returns {@code
+   * null} immediately -- mirrors {@link DatagramChannel#configureBlocking}. The real underlay
+   * channel always stays non-blocking at the OS/NIO level; "blocking" is emulated at this level.
    */
   public void configureBlocking(boolean block) {
     this.blocking = block;
@@ -194,10 +191,9 @@ public class SnapTunnel {
   }
 
   /**
-   * Blocks (without busy-polling) until the underlay channel may have data ready to read, or the
-   * given timeout elapses. Used by callers that loop on {@link #receivePacket} to avoid a busy-poll
-   * (a non-blocking {@code receive()} returning {@code null} does not by itself mean no data will
-   * ever arrive, so callers still need to retry after this returns).
+   * Blocks (without busy-polling) until the channel may have data ready, or the timeout elapses.
+   * Callers loop on {@link #receivePacket} and retry after this returns, since a non-blocking
+   * {@code receive()} returning {@code null} doesn't mean no data will ever arrive.
    */
   public void awaitReadable(long timeoutMillis) throws IOException {
     if (!selector.isOpen()) {
@@ -214,10 +210,9 @@ public class SnapTunnel {
 
   /**
    * Returns the real, OS-backed channel carrying encrypted SNAP traffic, for registration with an
-   * external {@link Selector} (e.g. by a caller that already has its own select loop and wants to
-   * fold this tunnel's readiness into it instead of polling via {@link #awaitReadable}). Callers
-   * must not read from or write to the returned channel directly -- use {@link #sendPacket} /
-   * {@link #receivePacket}, which handle encryption; this is exposed purely as a readiness signal.
+   * external {@link Selector} instead of polling via {@link #awaitReadable}. Never read/write it
+   * directly -- use {@link #sendPacket}/{@link #receivePacket}, which handle encryption; this is
+   * only a readiness signal.
    */
   public DatagramChannel transportChannel() {
     return underlay;
@@ -450,13 +445,10 @@ public class SnapTunnel {
     return sent > 0 ? scionPacket.length : sent;
   }
 
-  // Deliberately not `synchronized`: ensureConnected() and decrypt() below already synchronize on
-  // this object for the state they mutate, but this method itself must not hold that monitor for
-  // its whole duration -- in blocking mode (see configureBlocking()) it can wait indefinitely, and
-  // holding the monitor while doing so would block a concurrent sendPacket() call on another
-  // thread for just as long. The underlying DatagramChannel supports one concurrent reader and one
-  // concurrent writer, so a dedicated receive thread and send thread are meant to be able to run
-  // independently, exactly like a plain blocking DatagramChannel.
+  // Deliberately not `synchronized`: ensureConnected()/decrypt() below already synchronize for the
+  // state they mutate, but this method must not hold that lock for its whole (potentially
+  // indefinite, in blocking mode) duration, or a blocked receive would starve a concurrent
+  // sendPacket() call -- a plain DatagramChannel allows one concurrent reader and one writer.
   public InetSocketAddress receivePacket(ByteBuffer buffer) throws IOException {
     ensureConnected();
     ByteBuffer underlayBuf = ByteBuffer.allocate(65535);
@@ -477,14 +469,10 @@ public class SnapTunnel {
         // the selector wakes immediately and the next underlay.receive() call below throws
         // ClosedChannelException, propagating naturally instead of looping forever.
         awaitReadable(Long.MAX_VALUE);
-        // On JDK 8, a non-blocking DatagramChannel.receive() call made with the thread's interrupt
-        // status already set throws ClosedByInterruptException, which used to be enough on its own
-        // to unblock a cancelled blocking receivePacket() call. Starting with JDK 11, receive() no
-        // longer does that check for a non-blocking channel -- it just returns null again -- and
-        // Selector.select() never clears the interrupt status once set, so every subsequent
-        // awaitReadable() call above returns instantly: without this explicit check, an interrupted
-        // blocking receivePacket() call would spin forever (100% CPU, thread never terminates)
-        // instead of terminating, on JDK 11+.
+        // JDK 11+'s non-blocking receive() no longer throws ClosedByInterruptException just
+        // because the thread's interrupt status is set (JDK 8 did); since Selector.select() never
+        // clears that status either, awaitReadable() would otherwise return instantly forever,
+        // spinning this loop instead of terminating.
         if (Thread.currentThread().isInterrupted()) {
           close();
           throw new java.nio.channels.ClosedByInterruptException();

@@ -32,12 +32,11 @@ import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.testutil.MockSnapService;
 
 /**
- * Whitebox coverage for {@link SnapTunnel} branches that {@code SnapTunnelTest} and the
- * higher-level {@code org.scion.jpan.api} SNAP tests never exercise, since they only ever drive
- * "everything works" round trips: {@link SnapTunnel#decrypt}'s not-established/unparseable/
- * receiver-index-mismatch/AEAD-failure branches, {@link SnapTunnel#receivePacket}'s
- * nothing-available/wrong-source/undecryptable-but-correctly-addressed branches, and every branch
- * of {@link SnapTunnel#parseSnapSocketAddress}.
+ * Whitebox coverage for {@link SnapTunnel} branches the "everything works" round trips in {@code
+ * SnapTunnelTest} and the {@code org.scion.jpan.api} SNAP tests never exercise: {@link
+ * SnapTunnel#decrypt}'s not-established/unparseable/receiver-index-mismatch/AEAD-failure branches,
+ * {@link SnapTunnel#receivePacket}'s nothing-available/wrong-source/undecryptable branches, and
+ * every branch of {@link SnapTunnel#parseSnapSocketAddress}.
  */
 class SnapTunnelWhiteboxTest {
 
