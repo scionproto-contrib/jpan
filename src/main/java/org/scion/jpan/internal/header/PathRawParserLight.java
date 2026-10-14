@@ -38,7 +38,7 @@ public class PathRawParserLight {
   }
 
   public static boolean extractInfoFlagC(ByteBuffer data, int segID) {
-    int i0 = data.getInt(PATH_META_LEN + segID * PATH_INFO_LEN);
+    int i0 = data.getInt(data.position() + PATH_META_LEN + segID * PATH_INFO_LEN);
     return readBoolean(i0, 7);
   }
 

@@ -247,6 +247,8 @@ TODO
 - **BREAKING CHANGE**: `ScionService.getIsdAses()` now returns a `List`
   instead of a `Set`. Lists are easier to use and allow rankings.
   [#289](https://github.com/scionproto-contrib/jpan/pull/289)
+- Cleanup in AbstractScionChannel
+  [#291](https://github.com/scionproto-contrib/jpan/pull/291)
 
 ### Removed
 
