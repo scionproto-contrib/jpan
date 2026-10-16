@@ -249,6 +249,8 @@ TODO
   [#289](https://github.com/scionproto-contrib/jpan/pull/289)
 - Cleanup in AbstractScionChannel
   [#291](https://github.com/scionproto-contrib/jpan/pull/291)
+- Release preparation: Update dependencies
+  [#292](https://github.com/scionproto-contrib/jpan/pull/292)
 
 ### Removed
 
