@@ -38,13 +38,12 @@ public class PathRawParserLight {
   }
 
   public static boolean extractInfoFlagC(ByteBuffer data, int segID) {
-    int i0 = data.getInt(PATH_META_LEN + segID * PATH_INFO_LEN);
+    int i0 = data.getInt(data.position() + PATH_META_LEN + segID * PATH_INFO_LEN);
     return readBoolean(i0, 7);
   }
 
   public static int extractHopCount(int[] segLen) {
-    int nHops = segLen[0] + segLen[1] + segLen[2];
-    return nHops;
+    return segLen[0] + segLen[1] + segLen[2];
   }
 
   public static int extractHopCount(ByteBuffer data) {
@@ -83,6 +82,29 @@ public class PathRawParserLight {
     result[0] = ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 2)); // ingress
     result[1] = ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + 4)); // egress
     return result;
+  }
+
+  /**
+   * Extracts the interface ID of the last hop field. The buffer's position is not changed.
+   *
+   * @param data ByteBuffer with the path data. The buffer's must be at the beginning of the path
+   *     header.
+   * @param pathPos Offset of path in buffer
+   * @return int[]{ingress, egress}
+   */
+  public static int extractLastInterfaceID(ByteBuffer data, int pathPos) {
+    int oldPos = data.position();
+    data.position(pathPos);
+    int hopId = extractHopCount(data) - 1;
+    int segCount = extractSegmentCount(data);
+    // The last hop field's {ingress, egress} are given in construction direction
+    boolean consDir = PathRawParserLight.extractInfoFlagC(data, segCount - 1);
+
+    int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopId * HOP_FIELD_LEN;
+    int ifOffset = consDir ? 2 : 4; // ingress or ogress
+    int interfaceId = ByteUtil.toUnsigned(data.getShort(data.position() + hfOffset + ifOffset));
+    data.position(oldPos);
+    return interfaceId;
   }
 
   public static int extractSegmentCount(ByteBuffer data) {

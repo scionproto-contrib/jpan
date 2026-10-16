@@ -532,16 +532,11 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   protected InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
     if (getService() != null) {
-      int oldPos = buffer.position();
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
       // If we have a path we need to use it to get the return address.
       // If we don't have a path (local AS) we need to use the underlay IP address.
       if (pathPos > 0) {
-        buffer.position(pathPos);
-        int hopCount = PathRawParserLight.extractHopCount(buffer);
-        int[] interfaceIds = PathRawParserLight.extractHopFieldInterfaceIDs(buffer, hopCount - 1);
-        buffer.position(oldPos);
-        int interfaceId = interfaceIds[0] == 0 ? interfaceIds[1] : interfaceIds[0];
+        int interfaceId = PathRawParserLight.extractLastInterfaceID(buffer, pathPos);
         return service.getBorderRouterAddress(interfaceId);
       }
     }
@@ -838,18 +833,14 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       // consistent API behavior that getLocalAddress() should return an address after send().
       ensureBound();
       buffer.clear();
-      long srcIsdAs;
       InetAddress srcAddress;
       if (path instanceof ResponsePath) {
         // We get the source ISD/AS and IP from the path because ScionService may be null.
         // Also, we may be behind a NAT or SNAP, so the path's address is known to be correct.
         ResponsePath rPath = (ResponsePath) path;
-        srcIsdAs = rPath.getLocalIsdAs();
         srcAddress = rPath.getLocalAddress();
         port.set(rPath.getLocalPort());
       } else {
-        RequestPath rPath = (RequestPath) path;
-        srcIsdAs = rPath.getLocalIsdAs();
         InetSocketAddress src = getSourceAddress(path);
         srcAddress = src.getAddress();
         port.set(src.getPort());
@@ -860,7 +851,7 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
           buffer,
           payloadLength,
           rawPath.length,
-          srcIsdAs,
+          path.getLocalIsdAs(),
           srcAddress.getAddress(),
           path.getRemoteIsdAs(),
           path.getRemoteAddress().getAddress(),

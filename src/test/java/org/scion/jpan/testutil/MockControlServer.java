@@ -259,7 +259,7 @@ public class MockControlServer {
       Seg.HopField hop0 =
           Seg.HopField.newBuilder()
               .setMac(mac0)
-              .setIngress(3)
+              .setIngress(0)
               .setEgress(egress)
               .setExpTime(64)
               .build();
