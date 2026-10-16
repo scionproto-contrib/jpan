@@ -18,7 +18,7 @@ The following artifact contains the complete SCION Java implementation:
 <dependency>
     <groupId>org.scion</groupId>
     <artifactId>jpan</artifactId>
-    <version>0.7.0</version>
+    <version>0.8.0</version>
 </dependency>
 ```
 
@@ -28,6 +28,7 @@ The following artifact contains the complete SCION Java implementation:
 - [SCMP](https://docs.scion.org/en/latest/protocols/scmp.html) (ICMP for SCION)
 - Works stand-alone or with a local SCION daemon (without dispatcher, see below) 
 - NAT support, see [here](doc/NAT.md) for details and restrictions.
+- Experimental(!) SNAP support.
 
 ### Planned features
 - API: `Selector` for `ScionDatagramChannel`
