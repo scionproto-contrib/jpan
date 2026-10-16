@@ -532,19 +532,11 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
 
   protected InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
     if (getService() != null) {
-      int oldPos = buffer.position();
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
       // If we have a path we need to use it to get the return address.
       // If we don't have a path (local AS) we need to use the underlay IP address.
       if (pathPos > 0) {
-        buffer.position(pathPos);
-        int hopCount = PathRawParserLight.extractHopCount(buffer);
-        int segCount = PathRawParserLight.extractSegmentCount(buffer);
-        int[] interfaceIds = PathRawParserLight.extractHopFieldInterfaceIDs(buffer, hopCount - 1);
-        // The last hop field's {ingress, egress} are given in construction direction
-        boolean consDir = PathRawParserLight.extractInfoFlagC(buffer, segCount - 1);
-        buffer.position(oldPos);
-        int interfaceId = consDir ? interfaceIds[0] : interfaceIds[1];
+        int interfaceId = PathRawParserLight.extractLastInterfaceID(buffer, pathPos);
         return service.getBorderRouterAddress(interfaceId);
       }
     }
