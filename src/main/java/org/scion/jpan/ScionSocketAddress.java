@@ -51,11 +51,12 @@ public class ScionSocketAddress extends InetSocketAddress {
   }
 
   /**
-   * @deprecated This will be removed in 0.8.0
+   * @deprecated This will be removed in 0.8.0. receive() now returns a ScionPathAddress which has a
+   *     method {@link ScionPathAddress#getPath()}.
    * @return Path
    */
   @Deprecated // TODO remove in 0.8.0
-  Path getPath() {
+  public Path getPath() {
     return path;
   }
 
