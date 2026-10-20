@@ -159,7 +159,7 @@ public class ScionDatagramPacket {
    * @see DatagramPacket#getSocketAddress()
    */
   public synchronized ScionSocketAddress getSocketAddress() {
-    return path.getRemoteSocketAddress();
+    return path == null ? null : path.getRemoteSocketAddress();
   }
 
   /**
