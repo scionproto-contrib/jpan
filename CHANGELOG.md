@@ -182,13 +182,6 @@ TODO
 
 Nothing yet
 
-## 0.8.1
-
-### Fixed
-
-- Fixed NPE in `ScionDatagramPacket.getSocketAddress()`
-  [#294](https://github.com/scionproto-contrib/jpan/pull/294)
-
 ### Fixed
 
 - Post release updates

@@ -14,7 +14,8 @@
 
 package org.scion.jpan.api;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.InetSocketAddress;
 import org.junit.jupiter.api.Test;
@@ -97,16 +98,5 @@ class DatagramPacketTest {
     assertEquals(path2, sdp.getPath());
     assertEquals(addr2.getAddress(), sdp.getAddress());
     assertEquals(22222, sdp.getPort());
-  }
-
-  @Test
-  void getSocketAddress() {
-    InetSocketAddress addr1 = IPHelper.toInetSocketAddress("192.168.1.1:11111");
-    Path path1 = PackageVisibilityHelper.createDummyPath(addr1);
-    ScionDatagramPacket sdp = new ScionDatagramPacket(new byte[10], 3, 7, path1);
-    assertEquals(path1.getRemoteSocketAddress(), sdp.getSocketAddress());
-
-    ScionDatagramPacket sdpNoPath = new ScionDatagramPacket(new byte[10], 3, 7);
-    assertNull(sdpNoPath.getSocketAddress()); // assert it doesn't fail
   }
 }

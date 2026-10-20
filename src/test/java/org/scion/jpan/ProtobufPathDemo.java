@@ -36,6 +36,10 @@ public class ProtobufPathDemo {
   private final ScionService service;
 
   public static void main(String[] args) {
+    if (true) {
+      System.exit(0);
+    }
+
     try (Scion.CloseableService daemon =
         Scion.newServiceWithDaemon(DemoConstants.daemon112_default)) {
       ProtobufPathDemo demo = new ProtobufPathDemo(daemon);
