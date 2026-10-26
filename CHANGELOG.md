@@ -188,11 +188,14 @@ Nothing yet
 
 - Fixed NPE in `ScionDatagramPacket.getSocketAddress()`
   [#294](https://github.com/scionproto-contrib/jpan/pull/294)
-
-### Fixed
-
 - Post release updates
   [#293](https://github.com/scionproto-contrib/jpan/pull/293)
+
+### Added
+
+- Added convenience constructor for ScionSocketAddress
+  [#295](https://github.com/scionproto-contrib/jpan/pull/295)
+
 
 ## [0.8.0] - 2026-10-16
 

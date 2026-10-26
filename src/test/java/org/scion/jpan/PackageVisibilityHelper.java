@@ -202,12 +202,8 @@ public class PackageVisibilityHelper {
     return RequestPath.create(m, base.getRemoteAddress(), base.getRemotePort(), firstHop);
   }
 
-  public static ScionSocketAddress toSSA(long isdAs, InetSocketAddress dstAddr) {
-    return ScionSocketAddress.from(isdAs, dstAddr.getAddress(), dstAddr.getPort());
-  }
-
   public static ScionSocketAddress toSSA(String isdAs, InetSocketAddress dstAddr) {
-    return toSSA(ScionUtil.parseIA(isdAs), dstAddr);
+    return ScionSocketAddress.from(ScionUtil.parseIA(isdAs), dstAddr);
   }
 
   public static String getFirstHop(ScionService ss, PathMetadata path) {
