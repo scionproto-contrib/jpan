@@ -98,6 +98,7 @@ public class PathRawParserLight {
     int hopId = extractHopCount(data) - 1;
     int segCount = extractSegmentCount(data);
     // The last hop field's {ingress, egress} are given in construction direction
+    // We cannot simply rely on ingressId=0 because in case of shortcut paths, ingressID may be != 0
     boolean consDir = PathRawParserLight.extractInfoFlagC(data, segCount - 1);
 
     int hfOffset = PATH_META_LEN + segCount * PATH_INFO_LEN + hopId * HOP_FIELD_LEN;

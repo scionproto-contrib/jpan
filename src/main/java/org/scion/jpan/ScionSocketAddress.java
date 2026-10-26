@@ -26,6 +26,10 @@ public class ScionSocketAddress extends InetSocketAddress {
     return new ScionSocketAddress(dstIsdAs, dstIP, dstPort);
   }
 
+  public static ScionSocketAddress from(long dstIsdAs, InetSocketAddress dst) {
+    return new ScionSocketAddress(dstIsdAs, dst.getAddress(), dst.getPort());
+  }
+
   /**
    * @deprecated This will be removed in 0.8.0
    */
