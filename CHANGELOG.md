@@ -199,6 +199,8 @@ Nothing yet
   [#295](https://github.com/scionproto-contrib/jpan/pull/295)
 - Made `PathSelectorWithRefresh` properly extendable.
   [#296](https://github.com/scionproto-contrib/jpan/pull/296)
+- Improved API documentation for `PathSelector`.
+  [#298](https://github.com/scionproto-contrib/jpan/pull/298)
 
 
 ## [0.8.0] - 2026-10-16
