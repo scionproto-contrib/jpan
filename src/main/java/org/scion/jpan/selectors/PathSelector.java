@@ -24,10 +24,25 @@ import org.scion.jpan.Scmp;
  * A PathSelector provides the next best path. Lifecycle:<br>
  * 1) create PathSelector <br>
  * 2) open()<br>
- * 2a) (reportError() if one is received)<br>
- * 3) close()<br>
+ * 3) repeat: getPath() (and reportError() if an error is received)<br>
+ * 4) close()<br>
+ *
+ * <p>The {@link PathPolicy} provides a default ranking of paths. A {@link PathSelector} may change
+ * the ranking or remove paths, see {@link #setPathPolicy(PathPolicy)} and {@link
+ * #reportError(Scmp.ErrorMessage)}.
+ *
+ * <p>The {@link PathSelectorWithRefresh} is default implementation and refreshes path from the path
+ * serves of the AS. It is designed to be extensible for custom {@link PathSelector}
+ * implementations.
  */
 public interface PathSelector extends Closeable {
+
+  /**
+   * Get the best currently available path.
+   *
+   * @return The best currently available paths.
+   */
+  Path getPath();
 
   /**
    * Report paths as faulty. The algorithm is pretty simple: This method tags all paths as faulty
@@ -41,16 +56,6 @@ public interface PathSelector extends Closeable {
    */
   void reportError(Scmp.ErrorMessage error);
 
-  PathPolicy getPathPolicy();
-
-  /**
-   * Set a new PathPolicy. This method will not be applied to the current paths in the PathSelector.
-   * To apply the new PathPolicy, {@link #refresh()} must be called.
-   *
-   * @param pathPolicy The PathPolicy instance.
-   */
-  void setPathPolicy(PathPolicy pathPolicy);
-
   /**
    * Initialize the PathSelector with a destination address. The path selector may (in this call)
    * request a new set of path if it has not valid paths.
@@ -63,16 +68,33 @@ public interface PathSelector extends Closeable {
 
   /**
    * If the PathSelector supports refresh, it will discard all existing paths and fetch new paths
-   * from the path service. If refresh is not supported this method does nothing.
+   * from the path service. If refresh is not supported this method does nothing. Implementations
+   * typically call refresh automatically on a timer, explicit calling is usually not required.
    */
   void refresh();
 
   /** Stop the path selector. */
   void close();
 
+  /**
+   * Set a new PathPolicy. This method will not be applied to the current paths in the PathSelector.
+   * To apply the new PathPolicy, {@link #refresh()} must be called.
+   *
+   * <p>The path policy provides a default ranking for paths. A path selector may change the
+   * ranking, for example, by removing faulty paths, or by changing the ranking after measurements.
+   *
+   * @param pathPolicy The PathPolicy instance.
+   */
+  void setPathPolicy(PathPolicy pathPolicy);
+
+  PathPolicy getPathPolicy();
+
   void setExpirationSafetyMargin(int cfgExpirationSafetyMargin);
 
-  Path getPath();
-
+  /**
+   * If connected, returns the remote address of the connection.
+   *
+   * @return the remote address
+   */
   ScionSocketAddress getRemoteSocketAddress();
 }

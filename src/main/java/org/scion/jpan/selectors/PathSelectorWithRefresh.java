@@ -102,8 +102,9 @@ public class PathSelectorWithRefresh implements PathSelector {
       this.timestamp = timestamp;
     }
 
-    public void setRank(double rank) {
+    public Entry setRank(double rank) {
       this.rank = rank;
+      return this;
     }
 
     @Override
