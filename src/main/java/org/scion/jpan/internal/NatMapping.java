@@ -191,6 +191,7 @@ public class NatMapping {
 
   private void detectSourceAddress() throws IOException {
     ConfigMode configMode = getConfig(); // The AsInfoMode may change, e.g. in case of AUTO
+    log.info("NAT mode: {}", configMode);
     switch (configMode) {
       case STUN_OFF:
         update(NatMode.NO_NAT, getLocalAddress());
