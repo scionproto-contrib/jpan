@@ -16,9 +16,12 @@ package org.scion.jpan.selectors;
 
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.scion.jpan.*;
 import org.scion.jpan.internal.util.Config;
 import org.slf4j.Logger;
@@ -55,24 +58,26 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   private final Runnable timerTask;
-  private Future<?> timerFuture;
-  private final ScionService service;
+  private final List<Future<?>> timerFutures = new CopyOnWriteArrayList<>();
+  protected final ScionService service;
   private ScionSocketAddress dstAddress = null;
   private PathPolicy pathPolicy;
 
   private final Map<Entry, Entry> faultyPaths = new HashMap<>();
-  private final List<Entry> unusedPaths = new ArrayList<>();
-  private Entry usedPath = null;
+  private final List<Entry> availablePaths = new ArrayList<>();
+  // NOTE: This field is made atomic to avoid synchronized access which may cause blocking while
+  // paths are refreshed.
+  private final AtomicReference<Entry> usedPath = new AtomicReference<>();
 
   private final int configPathPollIntervalMs;
   private int configExpirationMarginMs;
 
-  private static class Entry {
-    Path path;
-    double rank;
-    Instant timestamp;
-    final long[] pathHashBase;
-    final int hashCode;
+  protected static class Entry {
+    private final Path path;
+    private double rank;
+    private Instant timestamp;
+    private final long[] pathHashBase;
+    private final int hashCode;
 
     Entry(Path path, double rank) {
       this.path = path;
@@ -93,8 +98,12 @@ public class PathSelectorWithRefresh implements PathSelector {
       return ret;
     }
 
-    void setFaulty(Instant timestamp) {
+    private void setFaulty(Instant timestamp) {
       this.timestamp = timestamp;
+    }
+
+    public void setRank(double rank) {
+      this.rank = rank;
     }
 
     @Override
@@ -136,6 +145,10 @@ public class PathSelectorWithRefresh implements PathSelector {
     public Instant getTimestamp() {
       return timestamp;
     }
+
+    public Path getPath() {
+      return path;
+    }
   }
 
   public static PathSelectorWithRefresh create(
@@ -144,14 +157,18 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   public static PathSelectorWithRefresh create(ScionService service, PathPolicy policy) {
-    return new PathSelectorWithRefresh(
+    return new PathSelectorWithRefresh(service, policy);
+  }
+
+  protected PathSelectorWithRefresh(ScionService service, PathPolicy policy) {
+    this(
         service,
         policy,
         Config.getPathExpiryMarginSeconds() * 1000,
         Config.getPathPollingIntervalSeconds() * 1000);
   }
 
-  private PathSelectorWithRefresh(
+  protected PathSelectorWithRefresh(
       ScionService service, PathPolicy policy, int expirationMarginMs, int pathPollIntervalMs) {
     if (service == null) {
       throw new IllegalArgumentException();
@@ -190,19 +207,19 @@ public class PathSelectorWithRefresh implements PathSelector {
 
     // 1) Get new paths from the service
     List<Path> newPaths2 = pathPolicy.filter(service.getPaths(dstAddress));
-    unusedPaths.clear();
+    availablePaths.clear();
     int n = 0;
     for (Path p : newPaths2) {
       // Avoid paths that are about to expire
       if (!isExpiringInNextPeriod(p)) {
         Entry newEntry = new Entry(p, n++);
-        unusedPaths.add(newEntry);
+        availablePaths.add(newEntry);
       }
     }
 
-    if (unusedPaths.isEmpty()) {
+    if (availablePaths.isEmpty()) {
       LOG.warn("No free path available.");
-      usedPath = null;
+      usedPath.set(null);
       return;
     }
 
@@ -210,7 +227,7 @@ public class PathSelectorWithRefresh implements PathSelector {
     // We also clean up the faulty list so it doesn't remove any paths that were not also
     // offered in the last request.
     List<Entry> newFaulty = new ArrayList<>();
-    Iterator<Entry> itUnused = unusedPaths.iterator();
+    Iterator<Entry> itUnused = availablePaths.iterator();
     while (itUnused.hasNext()) {
       Entry newEntry = itUnused.next();
       faultyPaths.computeIfPresent(
@@ -227,11 +244,11 @@ public class PathSelectorWithRefresh implements PathSelector {
     faultyPaths.clear();
     newFaulty.forEach(e -> faultyPaths.put(e, e));
 
-    if (unusedPaths.isEmpty()) {
+    if (availablePaths.isEmpty()) {
       // try faulty paths again -> ordered by how long ago they were reported faulty
-      faultyPaths.forEach((k, v) -> unusedPaths.add(v));
-      unusedPaths.sort(Comparator.comparing(Entry::getTimestamp).thenComparing(Entry::getRank));
-      unusedPaths.forEach(e -> e.timestamp = null);
+      faultyPaths.forEach((k, v) -> availablePaths.add(v));
+      availablePaths.sort(Comparator.comparing(Entry::getTimestamp).thenComparing(Entry::getRank));
+      availablePaths.forEach(e -> e.timestamp = null);
       faultyPaths.clear();
     }
 
@@ -240,7 +257,7 @@ public class PathSelectorWithRefresh implements PathSelector {
   }
 
   private void findFreePath() {
-    usedPath = unusedPaths.remove(0);
+    usedPath.set(availablePaths.get(0));
   }
 
   @Override
@@ -278,33 +295,24 @@ public class PathSelectorWithRefresh implements PathSelector {
     }
 
     // Mark unused paths with faulty interfaces as faulty
-    Iterator<Entry> unusedIter = unusedPaths.iterator();
-    while (unusedIter.hasNext()) {
-      Entry e = unusedIter.next();
+    Iterator<Entry> availableIter = availablePaths.iterator();
+    while (availableIter.hasNext()) {
+      Entry e = availableIter.next();
       PathMetadata meta = e.path.getMetadata();
       if (ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId1)
           && (ifId2 == null || ScionUtil.isPathUsingInterface(meta, faultyIsdAs, ifId2))) {
-        unusedIter.remove();
+        availableIter.remove();
         e.setFaulty(Instant.now());
         faultyPaths.put(e, e);
       }
     }
 
-    // Mark used paths with faulty interfaces as faulty
-    PathMetadata usedMeta = usedPath.path.getMetadata();
-    if (ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId1)
-        && (ifId2 == null || ScionUtil.isPathUsingInterface(usedMeta, faultyIsdAs, ifId2))) {
-      Entry e = usedPath;
-      usedPath = null;
-      e.setFaulty(Instant.now());
-      faultyPaths.put(e, e);
-      // Find new path
-      if (unusedPaths.isEmpty()) {
-        refreshPaths();
-        return;
-      }
-      findFreePath();
+    // Find new path
+    if (availablePaths.isEmpty()) {
+      refreshPaths();
+      return;
     }
+    findFreePath();
   }
 
   @Override
@@ -323,9 +331,14 @@ public class PathSelectorWithRefresh implements PathSelector {
     return epochSeconds < Instant.now().getEpochSecond() + expirationDeltaMs / 1000;
   }
 
+  /**
+   * @return The best path.
+   */
   @Override
-  public synchronized Path getPath() {
-    return usedPath == null ? null : usedPath.path;
+  public Path getPath() {
+    assertOpen();
+    // NOTE: This method is _not_ synchronized to avoid blocking while paths are refreshed.
+    return usedPath.get() == null ? null : usedPath.get().path;
   }
 
   @Override
@@ -351,32 +364,58 @@ public class PathSelectorWithRefresh implements PathSelector {
     // fetch new paths
     refreshPaths();
 
-    timerFuture =
+    timerFutures.add(
         timer.scheduleAtFixedRate(
-            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS);
+            timerTask, configPathPollIntervalMs, configPathPollIntervalMs, TimeUnit.MILLISECONDS));
+  }
+
+  private void assertOpen() {
+    if (!isOpen()) {
+      throw new IllegalStateException("Path selector is not open");
+    }
   }
 
   @Override
   public synchronized void close() {
-    Entry e = usedPath;
-    if (e != null) {
-      unusedPaths.add(e);
-      usedPath = null;
-    }
-
-    if (timerFuture != null) {
+    for (Future<?> timerFuture : timerFutures) {
       timerFuture.cancel(true);
-      timerFuture = null;
     }
+    timerFutures.clear();
     this.dstAddress = null;
-    this.unusedPaths.clear();
-    this.usedPath = null;
+    this.availablePaths.clear();
+    this.usedPath.set(null);
     this.faultyPaths.clear();
   }
 
   @Override
-  public void setExpirationSafetyMargin(int cfgExpirationSafetyMargin) {
+  public synchronized void setExpirationSafetyMargin(int cfgExpirationSafetyMargin) {
     configExpirationMarginMs = cfgExpirationSafetyMargin * 1000;
+  }
+
+  /**
+   * Apply an ordering to the available paths. The entries will buy ordered by "rank" in ascending
+   * order.
+   *
+   * @param rankingFn ranking function
+   */
+  protected synchronized void applyRanking(Consumer<List<Entry>> rankingFn) {
+    assertOpen();
+    rankingFn.accept(availablePaths);
+    availablePaths.sort(Comparator.comparingDouble(Entry::getRank));
+    findFreePath();
+  }
+
+  /**
+   * Schedule a fixed rate task to be executed by this selector. The task will automatically be
+   * stopped when {@link #close()} is called.
+   *
+   * @param timerTask the task
+   * @param delayMs delay before first execution (milliseconds)
+   * @param periodMs execution interval (milliseconds)
+   */
+  protected synchronized void addScheduledTask(Runnable timerTask, int delayMs, int periodMs) {
+    timerFutures.add(
+        timer.scheduleAtFixedRate(timerTask, delayMs, periodMs, TimeUnit.MILLISECONDS));
   }
 
   @Override

@@ -193,8 +193,10 @@ Nothing yet
 
 ### Added
 
-- Added convenience constructor for ScionSocketAddress
+- Added convenience constructor for `ScionSocketAddress`
   [#295](https://github.com/scionproto-contrib/jpan/pull/295)
+- Made `PathSelectorWithRefresh` properly extendable.
+  [#296](https://github.com/scionproto-contrib/jpan/pull/296)
 
 
 ## [0.8.0] - 2026-10-16

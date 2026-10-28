@@ -345,4 +345,45 @@ class PathSelectorWithRefreshTest {
     assertEquals(pifIn.getIsdAs(), pifEg.getIsdAs());
     return Scmp.Error6Message.create(errorPath, pifIn.getIsdAs(), pifIn.getId(), pifEg.getId());
   }
+
+  @Test
+  void customPathSelector() {
+    ScionService service = Scion.defaultService();
+    pp = CustomRefreshingSelector.createCustom(service, PathPolicy.DEFAULT, 200, 400);
+
+    InetSocketAddress dummyAddr = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+    ScionSocketAddress remote =
+        PackageVisibilityHelper.toSSA(MockNetwork.TINY_SRV_ISD_AS, dummyAddr);
+    try {
+      MockNetwork.getControlServer().getAndResetCallCount();
+
+      // Inject an expired path
+      AtomicInteger refreshCount = new AtomicInteger(0);
+      PathPolicy ppExp =
+          x -> {
+            refreshCount.incrementAndGet();
+            return x;
+          };
+      pp.setPathPolicy(ppExp);
+
+      // Initial open
+      pp.open(remote);
+
+      // No calls done in open() or setPathPolicy()
+      assertEquals(2, MockNetwork.getControlServer().getAndResetCallCount());
+
+      Path p1 = pp.getPath();
+      // Wait 300ms for reordering to trigger
+      TestUtil.sleep(300);
+      Path p2 = pp.getPath();
+
+      assertNotEquals(p1, p2);
+
+      // The should not have been any refresh in the meantime
+      assertEquals(0, MockNetwork.getControlServer().getAndResetCallCount());
+      assertEquals(1, refreshCount.get());
+    } finally {
+      pp.close();
+    }
+  }
 }
