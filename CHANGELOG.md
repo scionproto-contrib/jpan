@@ -186,10 +186,12 @@ Nothing yet
 
 ### Fixed
 
-- Fixed NPE in `ScionDatagramPacket.getSocketAddress()`
-  [#294](https://github.com/scionproto-contrib/jpan/pull/294)
 - Post release updates
   [#293](https://github.com/scionproto-contrib/jpan/pull/293)
+- Fixed NPE in `ScionDatagramPacket.getSocketAddress()`
+  [#294](https://github.com/scionproto-contrib/jpan/pull/294)
+- Fixed code format plugin failures
+  [#297](https://github.com/scionproto-contrib/jpan/pull/297)
 
 ### Added
 
