@@ -201,6 +201,8 @@ Nothing yet
   [#296](https://github.com/scionproto-contrib/jpan/pull/296)
 - Improved API documentation for `PathSelector`.
   [#298](https://github.com/scionproto-contrib/jpan/pull/298)
+- Made `RequestPath` and `ResponsePath` extendable with protected constructor.
+  [#299](https://github.com/scionproto-contrib/jpan/pull/299)
 
 
 ## [0.8.0] - 2026-10-16

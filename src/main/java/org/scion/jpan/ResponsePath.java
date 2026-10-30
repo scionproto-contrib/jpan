@@ -16,6 +16,7 @@ package org.scion.jpan;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Objects;
 
 /**
  * A ResponsePath is created/returned when receiving a packet. Besides being a Path, it contains
@@ -57,7 +58,7 @@ public class ResponsePath extends Path {
         rawPath, srcIsdAs, srcIP, srcPort, dstIsdAs, dstIP, dstPort, firstHopAddress);
   }
 
-  private ResponsePath(
+  protected ResponsePath(
       byte[] rawPath,
       long srcIsdAs,
       InetAddress srcIP,
@@ -95,6 +96,20 @@ public class ResponsePath extends Path {
 
   public int getLocalPort() {
     return srcPort;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (!(o instanceof ResponsePath)) {
+      return false;
+    }
+    ResponsePath p = (ResponsePath) o;
+    return super.equals(o) && Objects.equals(srcAddress, p.srcAddress) && srcPort == p.srcPort;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(super.hashCode(), srcAddress, srcPort);
   }
 
   @Override
