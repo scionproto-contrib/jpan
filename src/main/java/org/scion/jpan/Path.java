@@ -43,8 +43,8 @@ public abstract class Path {
   }
 
   /**
-   * Create a shallow copy of the Path with a new destination IP and port.
-   * The new object shares PathMetadata and raw path with the current object.
+   * Create a shallow copy of the Path with a new destination IP and port. The new object shares
+   * PathMetadata and raw path with the current object.
    *
    * @param dstIP new destination IP
    * @param dstPort new destination port
