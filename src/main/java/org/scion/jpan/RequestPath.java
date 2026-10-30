@@ -55,7 +55,7 @@ public class RequestPath extends Path {
         metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
   }
 
-  private RequestPath(
+  protected RequestPath(
       PathMetadata metadata,
       InetSocketAddress firstHop,
       long srcIsdAs,
