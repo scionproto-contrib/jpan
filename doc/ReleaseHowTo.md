@@ -10,6 +10,7 @@
 2) Release preparation, create and merge PR with following changes:
     - Check for updated GitHub actions
     - Run `mvn versions:display-dependency-updates` and fix any outdated dependencies
+    - Comment out `<prerequisites>` and run `mvn versions:display-plugin-updates`
     - (Run `mvn dependency-check:check -DnvdApiKey=...` (requires Java 11 or later)  )
       (-> OWASP CVE checks)
       -> Currently disabled because the plugin causes NPEs  
