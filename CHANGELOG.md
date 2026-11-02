@@ -186,12 +186,15 @@ Nothing yet
 
 ### Fixed
 
-- Post release updates
-  [#293](https://github.com/scionproto-contrib/jpan/pull/293)
 - Fixed NPE in `ScionDatagramPacket.getSocketAddress()`
   [#294](https://github.com/scionproto-contrib/jpan/pull/294)
 - Fixed code format plugin failures
   [#297](https://github.com/scionproto-contrib/jpan/pull/297)
+
+### Changed
+
+- Post release updates
+  [#293](https://github.com/scionproto-contrib/jpan/pull/293)
 
 ### Added
 
@@ -203,6 +206,8 @@ Nothing yet
   [#298](https://github.com/scionproto-contrib/jpan/pull/298)
 - Made `RequestPath` and `ResponsePath` extendable with protected constructor.
   [#299](https://github.com/scionproto-contrib/jpan/pull/299)
+- Added `ScionUtil.toStringIAs()` utility function.
+  [#300](https://github.com/scionproto-contrib/jpan/pull/300)
 
 
 ## [0.8.0] - 2026-10-16

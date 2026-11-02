@@ -14,6 +14,7 @@
 
 package org.scion.jpan;
 
+import java.util.Collection;
 import org.scion.jpan.internal.header.PathRawParser;
 
 /** Scion utility functions. */
@@ -78,6 +79,15 @@ public class ScionUtil {
 
   public static String toStringIA(long ia) {
     return toStringIA((int) ((ia & 0xFFFF000000000000L) >>> 48), ia & 0xFFFFFFFFFFFFL);
+  }
+
+  public static String toStringIAs(Collection<Long> ias) {
+    StringBuilder sb = new StringBuilder();
+    for (Long ia : ias) {
+      sb.append(toStringIA(ia)).append(", ");
+    }
+    String result = sb.toString();
+    return result.length() > 2 ? result.substring(0, result.length() - 2) : result;
   }
 
   public static String toStringIA(int isd, long as) {
