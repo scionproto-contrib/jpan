@@ -18,6 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
 import org.scion.jpan.Path;
@@ -82,6 +85,22 @@ class ScionUtilTest {
         assertThrows(
             IllegalArgumentException.class, () -> ScionUtil.toStringIA(45, 0x1FFFFFFFFFFFFL));
     assertTrue(exception.getMessage().contains("AS out of range"));
+  }
+
+  @Test
+  void toStringIAs() {
+    assertEquals("", ScionUtil.toStringIAs(Collections.emptyList()));
+    List<Long> list = new ArrayList<>();
+    list.add(0L);
+    list.add(42L << 48);
+    list.add(0xfedcL << 32);
+    list.add(0xfedcL << 16);
+    list.add(0xfedcL);
+    list.add(42L << 48 | 0xfedcba987654L);
+    list.add(65000L << 48 | 0xfedcba987654L);
+    assertEquals(
+        "0-0, 42-0, 0-fedc:0:0, 0-4275830784, 0-65244, 42-fedc:ba98:7654, 65000-fedc:ba98:7654",
+        ScionUtil.toStringIAs(list));
   }
 
   @Test
