@@ -14,17 +14,13 @@
 
 package org.scion.jpan.api;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import org.junit.jupiter.api.Test;
-import org.scion.jpan.PackageVisibilityHelper;
-import org.scion.jpan.PathMetadata;
-import org.scion.jpan.RequestPath;
-import org.scion.jpan.ResponsePath;
+import org.scion.jpan.*;
 import org.scion.jpan.internal.util.IPHelper;
 
 class PathTest {
@@ -40,6 +36,35 @@ class PathTest {
     assertNotEquals(p.getRemoteSocketAddress(), p2.getRemoteSocketAddress());
     assertEquals(ip, p2.getRemoteAddress());
     assertEquals(555, p2.getRemotePort());
+  }
+
+  @Test
+  void requestPathConstructor() {
+    byte[] raw1 = new byte[] {1, 2, 3};
+    byte[] raw2 = new byte[] {1, 2, 3, 4};
+    PathMetadata meta =
+        PathMetadata.newBuilder().setSrcIsdAs(123).setDstIsdAs(1234).setRaw(raw1).build();
+    TestRequestPath path = new TestRequestPath(meta, raw2, null, 123, 1234, null, 1);
+    assertArrayEquals(raw1, path.getMetadata().getRawPath());
+    assertArrayEquals(raw2, path.getRawPath());
+
+    Path path2 = path.copy(path.getRemoteAddress(), path.getRemotePort());
+    assertArrayEquals(raw1, path2.getMetadata().getRawPath());
+    assertArrayEquals(raw2, path2.getRawPath());
+  }
+
+  private static class TestRequestPath extends RequestPath {
+
+    protected TestRequestPath(
+        PathMetadata metadata,
+        byte[] rawPath,
+        InetSocketAddress firstHop,
+        long srcIsdAs,
+        long dstIsdAs,
+        InetAddress dstIP,
+        int dstPort) {
+      super(metadata, rawPath, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    }
   }
 
   @Test

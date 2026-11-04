@@ -29,9 +29,7 @@ public class RequestPath extends Path {
 
   static RequestPath create(
       PathMetadata metadata, InetAddress dstIP, int dstPort, InetSocketAddress firstHop) {
-    long srcIsdAs = metadata.getSrcIdsAs();
-    long dstIsdAs = metadata.getDstIdsAs();
-    return new RequestPath(metadata, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    return new RequestPath(metadata, firstHop, dstIP, dstPort);
   }
 
   static RequestPath create(
@@ -52,17 +50,30 @@ public class RequestPath extends Path {
   @Override
   public Path copy(InetAddress dstIP, int dstPort) {
     return new RequestPath(
-        metadata, getFirstHopAddress(), getLocalIsdAs(), getRemoteIsdAs(), dstIP, dstPort);
+        metadata,
+        getRawPath(),
+        getFirstHopAddress(),
+        getLocalIsdAs(),
+        getRemoteIsdAs(),
+        dstIP,
+        dstPort);
+  }
+
+  protected RequestPath(
+      PathMetadata meta, InetSocketAddress firstHop, InetAddress dstIP, int dstPort) {
+    this(meta, meta.getRawPath(), firstHop, meta.getSrcIdsAs(), meta.getDstIdsAs(), dstIP, dstPort);
   }
 
   protected RequestPath(
       PathMetadata metadata,
+      byte[] rawPath,
       InetSocketAddress firstHop,
       long srcIsdAs,
       long dstIsdAs,
       InetAddress dstIP,
       int dstPort) {
-    super(metadata.getRawPath(), firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
+    // Constructor that allows inserting a rawPath different from the metadata rawPath.
+    super(rawPath, firstHop, srcIsdAs, dstIsdAs, dstIP, dstPort);
     this.metadata = metadata;
   }
 
