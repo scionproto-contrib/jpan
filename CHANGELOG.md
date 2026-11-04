@@ -180,7 +180,8 @@ TODO
 
 ### Added
 
-Nothing yet
+- Additional constructor for `RequestPath`
+  [#302](https://github.com/scionproto-contrib/jpan/pull/302)
 
 ## [0.8.1] - 2026-11-02
 
