@@ -178,6 +178,11 @@ TODO
 
 ## 0.9.0 - WIP
 
+### Changed
+
+- Don't log error on invalid SCION addresses in /etc/hosts
+  [#303](https://github.com/scionproto-contrib/jpan/pull/303)
+
 ### Added
 
 - Additional constructor for `RequestPath`
