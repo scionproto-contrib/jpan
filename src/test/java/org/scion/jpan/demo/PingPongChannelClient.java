@@ -17,6 +17,7 @@ package org.scion.jpan.demo;
 import java.io.IOException;
 import java.net.*;
 import java.nio.ByteBuffer;
+import org.scion.jpan.Constants;
 import org.scion.jpan.PathMetadata;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionUtil;
@@ -35,9 +36,26 @@ public class PingPongChannelClient {
   public static boolean PRINT = true;
 
   public static void main(String... args) throws IOException {
-    // The following starts a mock daemon for a local AS "1-ff00:0:110" and a border router that
-    // connects to "1-ff00:0:112"
-    DemoTopology.configureMockV4();
+    if (PingPongChannelServer.useTiny) {
+      // The following starts a mock daemon for a local AS "1-ff00:0:110" and a border router that
+      // connects to "1-ff00:0:112"
+      DemoTopology.configureMockV4();
+    } else {
+      // Container Lab
+      // AS 221
+      // clab-scion-2-ff00_0_221-host-1 │ 10.0.15.2 │ fd00:f00d:cafe::5
+      // System.setProperty(Constants.PROPERTY_DAEMON,
+      // "10.0.15.2");//DemoConstants.daemon1111_minimal);
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_PATH_SERVICE,
+          "10.0.15.2:40000"); // DemoConstants.daemon1111_minimal);
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_HOST,
+          "10.0.15.2:40000"); // DemoConstants.daemon1111_minimal);
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+          "topologies/default/ASff00_0_221/topology-clab.json"); // DemoConstants.daemon1111_minimal);
+    }
     // This is used by the DatagramSocket internally to look up the ISD/AS code.
     MockDNS.install("1-ff00:0:112", PingPongChannelServer.SERVER_ADDRESS.getAddress());
     run();

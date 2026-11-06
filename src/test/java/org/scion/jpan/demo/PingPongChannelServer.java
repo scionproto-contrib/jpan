@@ -18,29 +18,42 @@ import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.MockNetwork;
 
 public class PingPongChannelServer {
 
   public static boolean PRINT = true;
 
+  public static boolean useTiny = true;
   public static final String SERVER_HOST_NAME = "ping.pong.org";
   public static final InetSocketAddress SERVER_ADDRESS;
   public static final int SERVER_PORT = 44444;
   public static String TOPO_FILE = MockNetwork.TINY_SRV_TOPO_V4 + "/topology.json";
 
   static {
-    try {
-      byte[] serverIP = InetAddress.getLoopbackAddress().getAddress();
-      InetAddress address = InetAddress.getByAddress(SERVER_HOST_NAME, serverIP);
-      SERVER_ADDRESS = new InetSocketAddress(address, SERVER_PORT);
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
+    //    try {
+    InetAddress address;
+    if (useTiny) {
+      address =
+          IPHelper.toInetAddress(
+              SERVER_HOST_NAME, "127.0.0.1"); // InetAddress.getLoopbackAddress().getAddress();
+    } else {
+      // clab-scion-1-ff00_0_112-host-1 │ 10.0.3.2 │ fd00:f00d:cafe::9
+      address = IPHelper.toInetAddress(SERVER_HOST_NAME, "10.192.0.10");
     }
+    // InetAddress address = InetAddress.getByAddress(SERVER_HOST_NAME, serverIP);
+    SERVER_ADDRESS = new InetSocketAddress(address, SERVER_PORT);
+    //    }
   }
 
   public static void main(String... args) {
-    System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    if (useTiny) {
+      System.setProperty(Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, TOPO_FILE);
+    } else {
+      System.setProperty(
+          Constants.PROPERTY_DAEMON, "10.0.3.2"); // DemoConstants.daemon1111_minimal);
+    }
     try {
       service();
     } catch (SocketException ex) {

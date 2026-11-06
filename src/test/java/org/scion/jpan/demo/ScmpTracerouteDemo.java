@@ -43,7 +43,8 @@ public class ScmpTracerouteDemo {
   public enum Network {
     JUNIT_MOCK_V4, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
     JUNIT_MOCK_V6, // SCION Java JUnit mock network with local AS = 1-ff00:0:112
-    SCION_PROTO, // Try to connect to scionproto networks, e.g. "tiny"
+    SCION_PROTO, // Try to connect to scionproto networks, e.g. "default"
+    SCION_PROTO_CLAB, // Try to connect to scionproto clab networks, e.g. "default"
     PRODUCTION // production network
   }
 
@@ -97,9 +98,19 @@ public class ScmpTracerouteDemo {
           // runDemo(DemoConstants.ia111);
           return runDemo(DemoConstants.ia222);
         }
+      case SCION_PROTO_CLAB:
+        {
+          // Alternative: Use topo file i.o. daemon
+          System.setProperty(
+              Constants.PROPERTY_BOOTSTRAP_TOPO_FILE,
+              "topologies/default/ASff00_0_112/topology-clab.json");
+          // System.setProperty(Constants.PROPERTY_DAEMON, "10.0.3.2");
+          return runDemo(DemoConstants.ia222);
+        }
       case PRODUCTION:
         {
-          return runDemo(ScionUtil.parseIA("71-20965"));
+          // return runDemo(ScionUtil.parseIA("71-20965"));
+          return runDemo(ScionUtil.parseIA("71-1916"));
           // return runDemo(ScionUtil.parseIA("65-2:0:6c"));
           // return runDemo(DemoConstants.iaGEANT);
           // runDemo(DemoConstants.iaAnapayaHK);
@@ -157,14 +168,19 @@ public class ScmpTracerouteDemo {
 
   private static void printPath(Path path) {
     String nl = System.lineSeparator();
-    StringBuilder sb = new StringBuilder();
     // sb.append("Actual local address:").append(nl);
     // sb.append("  ").append(channel.getLocalAddress().getAddress().getHostAddress()).append(nl);
-    sb.append("Using path:").append(nl);
-    sb.append("  Hops: ").append(ScionUtil.toStringPath(path.getMetadata()));
-    sb.append(" MTU: ").append(path.getMetadata().getMtu());
-    sb.append(" NextHop: ").append(path.getFirstHopAddress()).append(nl);
-    println(sb.toString());
+    String sb =
+        "Using path:"
+            + nl
+            + "  Hops: "
+            + ScionUtil.toStringPath(path.getMetadata())
+            + " MTU: "
+            + path.getMetadata().getMtu()
+            + " NextHop: "
+            + path.getFirstHopAddress()
+            + nl;
+    println(sb);
   }
 
   private static void println(String msg) {

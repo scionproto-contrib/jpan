@@ -187,6 +187,8 @@ TODO
 
 - Additional constructor for `RequestPath`
   [#302](https://github.com/scionproto-contrib/jpan/pull/302)
+- CLAB support for PingPongDemo and traceroute demo
+  [#304](https://github.com/scionproto-contrib/jpan/pull/304)
 
 ## [0.8.1] - 2026-11-02
 
