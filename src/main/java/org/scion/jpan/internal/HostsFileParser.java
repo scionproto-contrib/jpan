@@ -33,7 +33,8 @@ import org.slf4j.LoggerFactory;
 class HostsFileParser {
 
   private static final Logger LOG = LoggerFactory.getLogger(HostsFileParser.class);
-  private static final String PATH_LINUX = "/etc/scion/hosts;/etc/hosts";
+  private static final String ETC_HOSTS = "/etc/hosts";
+  private static final String PATH_LINUX = "/etc/scion/hosts;" + ETC_HOSTS;
 
   // We use hostName/addressString as key.
   private final Map<String, HostEntry> entries = new HashMap<>();
@@ -85,14 +86,14 @@ class HostsFileParser {
         return;
       }
       try (Stream<String> lines = Files.lines(path)) {
-        lines.forEach(line -> parseLine(line, path));
+        lines.forEach(line -> parseLine(line, path, path.toString().equals(ETC_HOSTS)));
       } catch (IOException e) {
         throw new ScionRuntimeException(e);
       }
     }
   }
 
-  private void parseLine(String line, Path path) {
+  private void parseLine(String line, Path path, boolean isEtcHosts) {
     try {
       String s = line.trim();
       if (s.isEmpty() || s.startsWith("#")) {
@@ -101,6 +102,11 @@ class HostsFileParser {
       String[] lineParts = s.split("\\s+");
       check(lineParts.length >= 2, "Expected ` `");
       String[] addrParts = lineParts[0].split(",");
+      if (isEtcHosts && addrParts.length != 2) {
+        // Ignore non-scion addresses in /etc/hosts
+        LOG.debug("While parsing file {}: not a scion address: \"{}\"", path, line);
+        return;
+      }
       check(addrParts.length == 2, "Expected `,`");
       long isdIa = ScionUtil.parseIA(addrParts[0]);
       check(addrParts[1].startsWith("["), "Expected `[` before address");
@@ -125,7 +131,7 @@ class HostsFileParser {
       // Use "normalized" address string as key (these may differ fo IPv6)
       entries.put(inetAddr.getHostAddress(), new HostEntry(isdIa, inetAddr));
     } catch (IndexOutOfBoundsException | IllegalArgumentException | UnknownHostException e) {
-      LOG.info("ERROR parsing file {}: error=\"{}\" line=\"{}\"", path, e.getMessage(), line);
+      LOG.warn("ERROR parsing file {}: error=\"{}\" line=\"{}\"", path, e.getMessage(), line);
     }
   }
 
