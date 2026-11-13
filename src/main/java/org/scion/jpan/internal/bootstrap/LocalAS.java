@@ -32,9 +32,10 @@ public class LocalAS {
   private final boolean isCoreAs;
   private final int localMtu;
   private final DispatcherPortRange portRange;
+  private final String snapAuthToken;
   private final TrcStore trcStore;
 
-  LocalAS(
+  protected LocalAS(
       List<Long> localIsdAs,
       boolean isCoreAs,
       int localMtu,
@@ -43,6 +44,7 @@ public class LocalAS {
       List<ServiceNode> discoveryServices,
       List<BorderRouter> borderRouters,
       List<SnapControlNode> snapControlNodes,
+      String snapAuthToken,
       TrcStore trcStore) {
     this.localIsdAs = Collections.unmodifiableList(localIsdAs);
     this.isCoreAs = isCoreAs;
@@ -53,6 +55,7 @@ public class LocalAS {
     this.borderRouters = borderRouters;
     this.snapControlNodes = snapControlNodes;
     this.interfaceIDs = initInterfaceIDs(borderRouters);
+    this.snapAuthToken = snapAuthToken;
     this.trcStore = trcStore;
   }
 
@@ -122,6 +125,10 @@ public class LocalAS {
 
   public DispatcherPortRange getPortRange() {
     return portRange;
+  }
+
+  public String getSnapAuthToken() {
+    return snapAuthToken;
   }
 
   @Override

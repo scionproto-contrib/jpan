@@ -108,7 +108,7 @@ public final class Scion {
   public static class CloseableService extends ScionService implements Closeable {
 
     static CloseableService create(String address, Mode mode) {
-      return ScionService.create(address, mode, CloseableService::new);
+      return ScionService.create(address, mode, null, CloseableService::new);
     }
 
     private CloseableService(

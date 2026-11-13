@@ -27,10 +27,6 @@ public class AAClient {
 
   private AAClient() {}
 
-  public static String fetchSnapToken(String apiKey, String serverUrl) {
-    return fetchAll(apiKey, serverUrl).snapToken;
-  }
-
   public static Result fetchAll(String apiKey, String serverUrl) {
     try {
       return fetch(apiKey, serverUrl);

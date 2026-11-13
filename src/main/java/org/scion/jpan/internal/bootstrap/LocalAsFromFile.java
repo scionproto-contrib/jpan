@@ -98,6 +98,7 @@ public class LocalAsFromFile {
         discoveryServices,
         borderRouters,
         Collections.emptyList(),
+        null,
         trcStore);
   }
 

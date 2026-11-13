@@ -36,9 +36,9 @@ public class LocalAsFromPathService {
 
   private LocalAsFromPathService() {}
 
-  public static LocalAS create(String pathService, TrcStore trcStore) {
+  public static LocalAS create(String pathService, String authToken, TrcStore trcStore) {
     List<LocalAS.ServiceNode> snList = getServiceNodeList(pathService);
-    Underlays.ListUnderlaysResponse u = query(snList, pathService);
+    Underlays.ListUnderlaysResponse u = query(snList, pathService, authToken);
     List<LocalAS.SnapControlNode> snapControlNodeList = getSnapControlNodes(u);
 
     if (Config.isUnderlaySnapAllowed()) {
@@ -56,6 +56,7 @@ public class LocalAsFromPathService {
             Collections.emptyList(),
             brList,
             snapControlNodeList,
+            authToken,
             trcStore);
       }
       if (Config.getUnderlayMode() == Config.UnderlayMode.SNAP) {
@@ -82,6 +83,7 @@ public class LocalAsFromPathService {
         Collections.emptyList(),
         brList,
         snapControlNodeList,
+        authToken,
         trcStore);
   }
 
@@ -138,10 +140,11 @@ public class LocalAsFromPathService {
     return new ArrayList<>(snap.getIsdAsesList());
   }
 
-  private static Underlays.ListUnderlaysResponse query(List<LocalAS.ServiceNode> nodes, String in) {
+  private static Underlays.ListUnderlaysResponse query(
+      List<LocalAS.ServiceNode> nodes, String in, String apiAuthToken) {
     for (LocalAS.ServiceNode node : nodes) {
       try {
-        return query(node.getIpString());
+        return query(node.getIpString(), apiAuthToken);
       } catch (IOException e) {
         LOG.warn("ERROR contacting path service: {}", node.getIpString());
       }
@@ -150,7 +153,8 @@ public class LocalAsFromPathService {
     throw new ScionRuntimeException("Path services unreachable: " + in);
   }
 
-  private static Underlays.ListUnderlaysResponse query(String apiAddress) throws IOException {
+  private static Underlays.ListUnderlaysResponse query(String apiAddress, String apiAuthToken)
+      throws IOException {
     OkHttpClient httpClient = new OkHttpClient();
     Underlays.ListUnderlaysRequest protoRequest =
         Underlays.ListUnderlaysRequest.newBuilder().build();
@@ -161,10 +165,9 @@ public class LocalAsFromPathService {
         new Request.Builder()
             .url(baseUrl + "/scion.endhost.v1.UnderlayService/ListUnderlays")
             .addHeader("Content-type", "application/proto");
-    String token = Config.getSnapAuthToken();
-    if (token != null && !token.isEmpty()) {
+    if (apiAuthToken != null && !apiAuthToken.isEmpty()) {
       if (baseUrl.startsWith("https://")) {
-        requestBuilder.addHeader("Authorization", "Bearer " + token);
+        requestBuilder.addHeader("Authorization", "Bearer " + apiAuthToken);
       } else {
         // Never send the SNAP bearer token over a plaintext connection: an on-path observer
         // could capture and replay it against the endhost API.

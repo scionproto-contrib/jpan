@@ -73,8 +73,8 @@ public class ScionBootstrapper {
     return LocalAsFromDaemon.create(daemonService, TrcStore.createEmpty());
   }
 
-  public static synchronized LocalAS fromPathService(String addressOrHost) {
-    return LocalAsFromPathService.create(addressOrHost, TrcStore.createEmpty());
+  public static synchronized LocalAS fromPathService(String addressOrHost, String authToken) {
+    return LocalAsFromPathService.create(addressOrHost, authToken, TrcStore.createEmpty());
   }
 
   private static LocalAS readTopoFile(java.nio.file.Path file) {

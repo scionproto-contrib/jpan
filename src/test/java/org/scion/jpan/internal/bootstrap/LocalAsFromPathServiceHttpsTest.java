@@ -97,7 +97,7 @@ class LocalAsFromPathServiceHttpsTest {
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
     String endpoint = "https://" + server.getHostName() + ":" + server.getPort();
 
-    LocalAS localAS = LocalAsFromPathService.create(endpoint, TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(endpoint, null, TrcStore.createEmpty());
 
     assertEquals(Collections.singletonList(testIsdAs), localAS.getIsdAses());
 
@@ -129,6 +129,6 @@ class LocalAsFromPathServiceHttpsTest {
 
     assertThrows(
         org.scion.jpan.ScionRuntimeException.class,
-        () -> LocalAsFromPathService.create(endpoint, TrcStore.createEmpty()));
+        () -> LocalAsFromPathService.create(endpoint, null, TrcStore.createEmpty()));
   }
 }

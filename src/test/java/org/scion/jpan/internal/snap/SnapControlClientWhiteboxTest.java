@@ -136,7 +136,7 @@ class SnapControlClientWhiteboxTest {
     server.enqueue(validGetDataPlaneAddressResponse());
     server.start();
 
-    SnapControlClient client = new SnapControlClient("https://localhost:" + server.getPort());
+    SnapControlClient client = new SnapControlClient("https://localhost:" + server.getPort(), null);
 
     assertNotNull(client.getDataPlaneAddress(true));
   }
@@ -158,7 +158,7 @@ class SnapControlClientWhiteboxTest {
     server.useHttps(serverCertificates.sslSocketFactory(), false);
     server.start();
 
-    SnapControlClient client = new SnapControlClient("https://localhost:" + server.getPort());
+    SnapControlClient client = new SnapControlClient("https://localhost:" + server.getPort(), null);
 
     assertThrows(ScionRuntimeException.class, () -> client.getDataPlaneAddress(true));
   }
@@ -169,14 +169,14 @@ class SnapControlClientWhiteboxTest {
 
   @Test
   void getDataPlaneAddress_unreachableServer_failOnErrorTrue_throws() throws Exception {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort());
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort(), null);
 
     assertThrows(ScionRuntimeException.class, () -> client.getDataPlaneAddress(true));
   }
 
   @Test
   void getDataPlaneAddress_unreachableServer_failOnErrorFalse_returnsNull() throws Exception {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort());
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort(), null);
 
     assertNull(client.getDataPlaneAddress(false));
   }
@@ -193,7 +193,7 @@ class SnapControlClientWhiteboxTest {
     server.start();
 
     SnapControlClient client =
-        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort());
+        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort(), null);
 
     assertThrows(ScionRuntimeException.class, () -> client.getDataPlaneAddress(true));
   }
@@ -204,20 +204,20 @@ class SnapControlClientWhiteboxTest {
 
   @Test
   void registerSnapTunIdentity_nullKey_throwsIllegalArgumentException() {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1");
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1", null);
     assertThrows(IllegalArgumentException.class, () -> client.registerSnapTunIdentity(null, null));
   }
 
   @Test
   void registerSnapTunIdentity_wrongKeyLength_throwsIllegalArgumentException() {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1");
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1", null);
     assertThrows(
         IllegalArgumentException.class, () -> client.registerSnapTunIdentity(new byte[16], null));
   }
 
   @Test
   void registerSnapTunIdentity_wrongPskLength_throwsIllegalArgumentException() {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1");
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:1", null);
     assertThrows(
         IllegalArgumentException.class,
         () -> client.registerSnapTunIdentity(new byte[32], new byte[10]));
@@ -225,7 +225,7 @@ class SnapControlClientWhiteboxTest {
 
   @Test
   void registerSnapTunIdentity_unreachableServer_throws() throws Exception {
-    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort());
+    SnapControlClient client = new SnapControlClient("http://127.0.0.1:" + findDeadPort(), null);
 
     assertThrows(
         ScionRuntimeException.class, () -> client.registerSnapTunIdentity(new byte[32], null));
@@ -246,7 +246,7 @@ class SnapControlClientWhiteboxTest {
     server.start();
 
     SnapControlClient client =
-        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort());
+        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort(), null);
 
     byte[] returnedPsk = client.registerSnapTunIdentity(new byte[32], null);
 
@@ -264,7 +264,7 @@ class SnapControlClientWhiteboxTest {
     server.start();
 
     SnapControlClient client =
-        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort());
+        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort(), null);
 
     assertThrows(
         ScionRuntimeException.class, () -> client.registerSnapTunIdentity(new byte[32], null));
@@ -276,13 +276,14 @@ class SnapControlClientWhiteboxTest {
 
   @Test
   void post_withAuthTokenConfigured_attachesAuthorizationHeader() throws Exception {
-    System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, "s3cr3t");
+    String token = "s3cr3t";
+    System.setProperty(Constants.PROPERTY_SNAP_AUTH_TOKEN, token);
     server = new MockWebServer();
     server.enqueue(validGetDataPlaneAddressResponse());
     server.start();
 
     SnapControlClient client =
-        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort());
+        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort(), token);
     client.getDataPlaneAddress(true);
 
     RecordedRequest recorded = server.takeRequest(2, TimeUnit.SECONDS);
@@ -297,7 +298,7 @@ class SnapControlClientWhiteboxTest {
     server.start();
 
     SnapControlClient client =
-        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort());
+        new SnapControlClient("http://" + server.getHostName() + ":" + server.getPort(), null);
     client.getDataPlaneAddress(true);
 
     RecordedRequest recorded = server.takeRequest(2, TimeUnit.SECONDS);

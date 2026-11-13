@@ -192,6 +192,9 @@ TODO
 - SNAP: Improved example, better warning in case of explicit settings, and
   prefer explicit setting over derived values.
   [#305](https://github.com/scionproto-contrib/jpan/pull/305)
+- SNAP: Improved API auth token handling.
+  (drive-by: Test ScionService extensibility)
+  [#306](https://github.com/scionproto-contrib/jpan/pull/306)
 
 ### Added
 
