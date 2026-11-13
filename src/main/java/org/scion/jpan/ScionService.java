@@ -273,7 +273,7 @@ public class ScionService {
   private static ScionService serviceFromSnapAuth(String authKey, String authService) {
     String apiToken = Config.getSnapAuthToken();
     if (apiToken != null && !apiToken.isEmpty()) {
-      LOG.warn("Using explicit endhost API token.");
+      LOG.info("Using explicit endhost API token.");
     }
     String pathServices = Config.getPathService();
     String discoveryClient = Config.getSnapPathServiceDiscovery();
