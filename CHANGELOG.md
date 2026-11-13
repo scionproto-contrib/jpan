@@ -180,8 +180,14 @@ TODO
 
 ### Changed
 
+--- TODO create unique Set<> of local ISD-ASes!
+
+--- TODO test arributes = null in TOPO file?
+
 - Don't log error on invalid SCION addresses in /etc/hosts
   [#303](https://github.com/scionproto-contrib/jpan/pull/303)
+- SNAP: Improved example and better warning in case of explicit control service address
+  [#305](https://github.com/scionproto-contrib/jpan/pull/305)
 
 ### Added
 
