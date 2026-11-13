@@ -59,7 +59,7 @@ class LocalAsFromPathServiceTest {
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
 
-    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), null, TrcStore.createEmpty());
 
     assertEquals(Collections.singletonList(SNAP_ISD_AS), localAS.getIsdAses());
   }
@@ -77,7 +77,7 @@ class LocalAsFromPathServiceTest {
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
 
-    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), null, TrcStore.createEmpty());
 
     assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }
@@ -91,7 +91,8 @@ class LocalAsFromPathServiceTest {
 
     String url = mock.getUrl();
     TrcStore trcStore = TrcStore.createEmpty();
-    assertThrows(ScionRuntimeException.class, () -> LocalAsFromPathService.create(url, trcStore));
+    assertThrows(
+        ScionRuntimeException.class, () -> LocalAsFromPathService.create(url, null, trcStore));
   }
 
   @Test
@@ -106,7 +107,7 @@ class LocalAsFromPathServiceTest {
     mock = MockEndhostApi.start(response);
     // PROPERTY_UNDERLAY_MODE intentionally left unset (default is "udp").
 
-    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), null, TrcStore.createEmpty());
 
     assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }
@@ -140,7 +141,7 @@ class LocalAsFromPathServiceTest {
     mock = MockEndhostApi.start(response);
     System.setProperty(Constants.PROPERTY_UNDERLAY_MODE, "snap");
 
-    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), null, TrcStore.createEmpty());
 
     // Both SNAP nodes are preserved as raw data...
     assertEquals(2, localAS.getSnapControlNodes().size());
@@ -162,7 +163,7 @@ class LocalAsFromPathServiceTest {
     // real mock server.
     String candidates = "http://127.0.0.1:1;" + mock.getUrl();
 
-    LocalAS localAS = LocalAsFromPathService.create(candidates, TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(candidates, null, TrcStore.createEmpty());
 
     assertEquals(Collections.singletonList(UDP_ISD_AS), localAS.getIsdAses());
   }

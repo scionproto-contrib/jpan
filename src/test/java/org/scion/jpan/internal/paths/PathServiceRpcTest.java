@@ -52,7 +52,7 @@ class PathServiceRpcTest {
   void segments_fetchesAndParsesResponse() throws IOException {
     mock = MockEndhostApi.launch();
 
-    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), TrcStore.createEmpty());
+    LocalAS localAS = LocalAsFromPathService.create(mock.getUrl(), null, TrcStore.createEmpty());
     PathServiceRpc rpc = PathServiceRpc.create(localAS);
 
     Segments.ListSegmentsResponse response = rpc.segments(SRC_ISD_AS, DST_ISD_AS);

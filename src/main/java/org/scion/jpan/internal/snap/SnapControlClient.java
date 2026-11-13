@@ -49,12 +49,13 @@ public class SnapControlClient {
 
   private final OkHttpClient httpClient;
   private final String baseUrl;
+  private final String authToken;
 
   public static SnapControlClient create(LocalAS localAS) {
     String explicit = Config.getSnapControlPlaneAddress();
     if (explicit != null && !explicit.isEmpty()) {
       LOG.warn("Using explicitly defined control service: {}", explicit);
-      return new SnapControlClient(explicit);
+      return new SnapControlClient(explicit, localAS.getSnapAuthToken());
     }
 
     List<LocalAS.SnapControlNode> snapControlNodes = localAS.getSnapControlNodes();
@@ -63,13 +64,14 @@ public class SnapControlClient {
     }
     // TODO Choosing only may be alright if the server mixes them up.
     String address = snapControlNodes.get(0).getAddress();
-    return new SnapControlClient(address);
+    return new SnapControlClient(address, localAS.getSnapAuthToken());
   }
 
-  public SnapControlClient(String endpoint) {
+  public SnapControlClient(String endpoint, String authToken) {
     // If the snap address ia a hostname (not just a bare IP:port), we attempt
     // to check the hostname against a server certificate.
     // If that fails we issue a warning but still allow the connection.
+    this.authToken = authToken;
     this.httpClient =
         new OkHttpClient.Builder().hostnameVerifier(SnapControlClient::verifyHostname).build();
     this.baseUrl = normalizeBaseUrl(endpoint);
@@ -109,7 +111,7 @@ public class SnapControlClient {
         throw new IOException("server static x25519 key must be 32 bytes");
       }
       return new SnapDataplaneDetails(
-          (InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519);
+          (InetSocketAddress) dpAddress, snapTunControl, serverStaticX25519, authToken);
     } catch (IOException e) {
       LOG.error("SNAP GetSnapDataPlaneAddress failed: {}", e.getMessage());
       if (failOnError) {
@@ -169,9 +171,8 @@ public class SnapControlClient {
   }
 
   private Request.Builder withAuth(Request.Builder builder) {
-    String token = Config.getSnapAuthToken();
-    if (token != null && !token.isEmpty()) {
-      builder.addHeader("Authorization", "Bearer " + token);
+    if (authToken != null && !authToken.isEmpty()) {
+      builder.addHeader("Authorization", "Bearer " + authToken);
     }
     return builder;
   }

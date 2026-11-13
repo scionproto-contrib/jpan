@@ -21,12 +21,17 @@ public class SnapDataplaneDetails {
   private final InetSocketAddress address;
   private final String snapTunControlAddress;
   private final byte[] snapStaticX25519;
+  private final String snapAuthToken;
 
   SnapDataplaneDetails(
-      InetSocketAddress address, String snapTunControlAddress, byte[] snapStaticX25519) {
+      InetSocketAddress address,
+      String snapTunControlAddress,
+      byte[] snapStaticX25519,
+      String token) {
     this.address = address;
     this.snapTunControlAddress = snapTunControlAddress;
     this.snapStaticX25519 = snapStaticX25519;
+    this.snapAuthToken = token;
   }
 
   public InetSocketAddress getAddress() {
@@ -39,5 +44,9 @@ public class SnapDataplaneDetails {
 
   public byte[] getSnapStaticX25519() {
     return snapStaticX25519;
+  }
+
+  public String getSnapAuthToken() {
+    return snapAuthToken;
   }
 }

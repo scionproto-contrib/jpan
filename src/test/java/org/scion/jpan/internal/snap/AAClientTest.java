@@ -50,7 +50,7 @@ class AAClientTest {
     try (MockSnapApiTokenService aaService =
         MockSnapApiTokenService.start("https://discovery.example.com:5001")) {
       String token =
-          AAClient.fetchSnapToken(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl());
+          AAClient.fetchAll(MockSnapApiTokenService.API_KEY, aaService.getBaseUrl()).snapToken;
 
       assertEquals(MockSnapApiTokenService.SNAP_TOKEN, token);
     }

@@ -73,7 +73,7 @@ public final class SnapUnderlay {
     SnapControlClient snapControlClient =
         (snapTunControlEndpoint == null || snapTunControlEndpoint.isEmpty())
             ? null
-            : new SnapControlClient(snapTunControlEndpoint);
+            : new SnapControlClient(snapTunControlEndpoint, dp.getSnapAuthToken());
 
     return SnapUnderlay.create(
         channel, dp.getAddress(), Arrays.copyOf(dp.getSnapStaticX25519(), 32), snapControlClient);

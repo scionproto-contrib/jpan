@@ -72,6 +72,14 @@ public class ScionService {
     BOOTSTRAP_SNAP
   }
 
+  protected static class SSConfig {
+    String apiAuthToken;
+
+    public SSConfig(String authToken) {
+      this.apiAuthToken = authToken;
+    }
+  }
+
   interface Constructor<T> {
     T create(
         LocalAS localAS,
@@ -95,7 +103,7 @@ public class ScionService {
     this.shutdownHook = addShutdownHook();
   }
 
-  static <T> T create(String addressOrHost, Mode mode, Constructor<T> constructor) {
+  static <T> T create(String addressOrHost, Mode mode, SSConfig cfg, Constructor<T> constructor) {
     final LocalAS localAS;
 
     switch (mode) {
@@ -114,7 +122,8 @@ public class ScionService {
       case BOOTSTRAP_PATH_SERVICE:
       case BOOTSTRAP_SNAP:
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
-        localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost));
+        String auth = cfg != null ? cfg.apiAuthToken : null;
+        localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost, auth));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
         SnapDataplaneDetails snapDataplaneDetails = initializeSnapDataPlaneIfEnabled(localAS);
         return constructor.create(localAS, null, pathService, null, snapDataplaneDetails);
@@ -193,7 +202,7 @@ public class ScionService {
       String fileName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
       if (fileName != null) {
-        defaultService = create(fileName, Mode.BOOTSTRAP_TOPO_FILE, ScionService::new);
+        defaultService = create(fileName, Mode.BOOTSTRAP_TOPO_FILE, null, ScionService::new);
         return defaultService;
       }
 
@@ -209,27 +218,27 @@ public class ScionService {
 
       String pathService = Config.getPathService();
       if (pathService != null) {
-        defaultService = create(pathService, Mode.BOOTSTRAP_PATH_SERVICE, ScionService::new);
+        defaultService = create(pathService, Mode.BOOTSTRAP_PATH_SERVICE, null, ScionService::new);
         return defaultService;
       }
 
       String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
       if (server != null) {
-        defaultService = create(server, Mode.BOOTSTRAP_SERVER_IP, ScionService::new);
+        defaultService = create(server, Mode.BOOTSTRAP_SERVER_IP, null, ScionService::new);
         return defaultService;
       }
 
       String naptrName =
           ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
       if (naptrName != null) {
-        defaultService = create(naptrName, Mode.BOOTSTRAP_VIA_DNS, ScionService::new);
+        defaultService = create(naptrName, Mode.BOOTSTRAP_VIA_DNS, null, ScionService::new);
         return defaultService;
       }
 
       // try daemon
       String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
       try {
-        defaultService = create(daemon, Mode.DAEMON, ScionService::new);
+        defaultService = create(daemon, Mode.DAEMON, null, ScionService::new);
         return defaultService;
       } catch (ScionRuntimeException e) {
         LOG.info(e.getMessage());
@@ -248,7 +257,7 @@ public class ScionService {
           || searchDomain != null) {
         String dnsResolver = DNSHelper.searchForDiscoveryService();
         if (dnsResolver != null) {
-          defaultService = create(dnsResolver, Mode.BOOTSTRAP_SERVER_IP, ScionService::new);
+          defaultService = create(dnsResolver, Mode.BOOTSTRAP_SERVER_IP, null, ScionService::new);
           return defaultService;
         }
         LOG.info("No DNS record found for bootstrap server.");
@@ -262,16 +271,17 @@ public class ScionService {
   }
 
   private static ScionService serviceFromSnapAuth(String authKey, String authService) {
-    // TODO overwrite API key char[] and reset property?
-    AAClient.Result result = AAClient.fetchAll(authKey, authService);
-    System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
+    String apiToken = Config.getSnapAuthToken();
+    if (apiToken != null && !apiToken.isEmpty()) {
+      LOG.info("Using explicit endhost API token.");
+    }
     String pathServices = Config.getPathService();
     String discoveryClient = Config.getSnapPathServiceDiscovery();
     if (!isEmpty(pathServices)) {
-      LOG.warn("Using explicitly configured path services: {}", pathServices);
+      LOG.info("Using explicitly configured path services: {}", pathServices);
     }
     if (!isEmpty(discoveryClient)) {
-      LOG.warn("Using explicitly configured path service discovery: {}", discoveryClient);
+      LOG.info("Using explicitly configured path service discovery: {}", discoveryClient);
     }
     // implicit path service, explicit discovery service
     if (isEmpty(pathServices) && !isEmpty(discoveryClient)) {
@@ -282,16 +292,22 @@ public class ScionService {
         pathServices = String.join(";", candidates);
       }
     }
-    // implicit path service, implicit discovery service
-    if (isEmpty(pathServices) && !isEmpty(result.endhostApiDiscoveryUrl)) {
-      String discoveryEndpoint = result.endhostApiDiscoveryUrl;
-      List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
-      pathServices = String.join(";", candidates);
+    // implicit API token
+    if (isEmpty(apiToken)) {
+      AAClient.Result result = AAClient.fetchAll(authKey, authService);
+      apiToken = result.snapToken;
+      // implicit path service, implicit API token, implicit discovery service
+      if (isEmpty(pathServices) && !isEmpty(result.endhostApiDiscoveryUrl)) {
+        String discoveryEndpoint = result.endhostApiDiscoveryUrl;
+        List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
+        pathServices = String.join(";", candidates);
+      }
     }
     if (isEmpty(pathServices)) {
       throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
     }
-    defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, ScionService::new);
+    SSConfig cfg = new SSConfig(apiToken);
+    defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, cfg, ScionService::new);
     return defaultService;
   }
 

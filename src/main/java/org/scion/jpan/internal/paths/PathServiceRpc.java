@@ -36,12 +36,14 @@ public class PathServiceRpc {
   private static final Logger LOG = LoggerFactory.getLogger(PathServiceRpc.class.getName());
 
   private final List<PathService> services = new ArrayList<>();
+  private final LocalAS localAS;
 
   public static PathServiceRpc create(LocalAS localAS) {
     return new PathServiceRpc(localAS);
   }
 
   private PathServiceRpc(LocalAS localAS) {
+    this.localAS = localAS;
     for (LocalAS.ServiceNode node : localAS.getControlServices()) {
       services.add(new PathService(node.getIpString()));
     }
@@ -65,10 +67,10 @@ public class PathServiceRpc {
           new Request.Builder()
               .url(baseUrl + "/" + Config.getNApiSegmentServiceName())
               .addHeader("Content-type", "application/proto");
-      String token = Config.getSnapAuthToken();
-      if (token != null && !token.isEmpty()) {
+      String apiAuthToken = localAS.getSnapAuthToken();
+      if (apiAuthToken != null && !apiAuthToken.isEmpty()) {
         if (baseUrl.startsWith("https://")) {
-          requestBuilder.addHeader("Authorization", "Bearer " + token);
+          requestBuilder.addHeader("Authorization", "Bearer " + apiAuthToken);
         } else {
           // Never send the SNAP bearer token over a plaintext connection: an on-path observer
           // could capture and replay it against the control service.
