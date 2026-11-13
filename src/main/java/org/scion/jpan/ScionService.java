@@ -277,10 +277,10 @@ public class ScionService {
     if (isEmpty(pathServices) && !isEmpty(discoveryClient)) {
       List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryClient);
       if (candidates.isEmpty()) {
-        throw new ScionRuntimeException(
-            "Endhost API discovery returned no candidates: " + discoveryClient);
+        LOG.warn("Endhost API discovery returned no candidates: {}", discoveryClient);
+      } else {
+        pathServices = String.join(";", candidates);
       }
-      pathServices = String.join(";", candidates);
     }
     // implicit path service, implicit discovery service
     if (isEmpty(pathServices) && !isEmpty(result.endhostApiDiscoveryUrl)) {
