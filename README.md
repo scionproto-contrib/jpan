@@ -431,8 +431,14 @@ Snap can be enabled in several ways:
   if it reports a SNAP underlay.
 
 So, to activate SNAP, do one of the following:
-- Specify a SNAP authentication service (e.g. `auth.scion.anapaya.net`) and an access token for the service.
-  Alternatively directly specify the SNAP authentication token.
+- (Preferred) Specify a SNAP authentication service and an access key
+  for the service. 
+  ```env
+  SCION_SNAP_AUTH_KEY=<your API key>
+  SCION_SNAP_AUTH_SERVICE=auth.scion.anapaya.net
+  SCION_UNDERLAY_MODE=SNAP
+  SCION_SNAP_PS_DISCOVERY=https://discovery.scion.anapaya.net
+  ```
 - If a SNAP control plane service is specified, it will try to use it, otherwise it will 
   try to use any SNAP control plane service provided by the authentication service
   or by the SCION endhost API.

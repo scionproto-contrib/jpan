@@ -53,6 +53,7 @@ public class SnapControlClient {
   public static SnapControlClient create(LocalAS localAS) {
     String explicit = Config.getSnapControlPlaneAddress();
     if (explicit != null && !explicit.isEmpty()) {
+      LOG.warn("Using explicitly defined control service: {}", explicit);
       return new SnapControlClient(explicit);
     }
 

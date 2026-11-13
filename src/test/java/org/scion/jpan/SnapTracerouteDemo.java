@@ -33,8 +33,13 @@ public class SnapTracerouteDemo {
     ScionService service = Scion.defaultService();
     long destinationIa = ScionUtil.parseIA(cli.destinationIa);
 
-    Path path = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT).get(0);
-    run(path, service, cli);
+    List<Path> paths = service.getPaths(destinationIa, cli.destinationIp, Constants.SCMP_PORT);
+    if (paths.isEmpty()) {
+      String local = ScionUtil.toStringIAs(service.getLocalIsdAsList());
+      String dst = ScionUtil.toStringIA(destinationIa);
+      throw new IllegalStateException("No path found from " + local + " to " + dst);
+    }
+    run(paths.get(0), service, cli);
     //    List<Path> paths = service.getPaths(destinationIa, cli.destinationIp,
     // Constants.SCMP_PORT);
     //    for (Path path : paths) {
