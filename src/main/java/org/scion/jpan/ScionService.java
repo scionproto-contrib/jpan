@@ -265,30 +265,38 @@ public class ScionService {
     // TODO overwrite API key char[] and reset property?
     AAClient.Result result = AAClient.fetchAll(authKey, authService);
     System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
-    String pathServices = null;
-    if (result.endhostApiDiscoveryUrl != null) {
+    String pathServices = Config.getPathService();
+    String discoveryClient = Config.getSnapPathServiceDiscovery();
+    if (!isEmpty(pathServices)) {
+      LOG.warn("Using explicitly configured path services: {}", pathServices);
+    }
+    if (!isEmpty(discoveryClient)) {
+      LOG.warn("Using explicitly configured path service discovery: {}", discoveryClient);
+    }
+    // implicit path service, explicit discovery service
+    if (isEmpty(pathServices) && !isEmpty(discoveryClient)) {
+      List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryClient);
+      if (candidates.isEmpty()) {
+        throw new ScionRuntimeException(
+            "Endhost API discovery returned no candidates: " + discoveryClient);
+      }
+      pathServices = String.join(";", candidates);
+    }
+    // implicit path service, implicit discovery service
+    if (isEmpty(pathServices) && !isEmpty(result.endhostApiDiscoveryUrl)) {
       String discoveryEndpoint = result.endhostApiDiscoveryUrl;
       List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(discoveryEndpoint);
       pathServices = String.join(";", candidates);
     }
-    if (pathServices == null || pathServices.isEmpty()) {
-      pathServices = Config.getPathService();
-    }
-    if (pathServices == null || pathServices.isEmpty()) {
-      String disco = Config.getSnapPathServiceDiscovery();
-      if (disco != null) {
-        List<String> candidates = EndhostApiDiscoveryClient.discoverEndhostApis(disco);
-        if (candidates.isEmpty()) {
-          throw new ScionRuntimeException("Endhost API discovery returned no candidates: " + disco);
-        }
-        pathServices = String.join(";", candidates);
-      }
-    }
-    if (pathServices == null || pathServices.isEmpty()) {
+    if (isEmpty(pathServices)) {
       throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
     }
     defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, ScionService::new);
     return defaultService;
+  }
+
+  private static boolean isEmpty(String s) {
+    return s == null || s.isEmpty();
   }
 
   public static void closeDefault() {

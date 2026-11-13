@@ -184,9 +184,13 @@ TODO
 
 --- TODO test arributes = null in TOPO file?
 
+-- TODO remove System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
+   in ScionService!
+
 - Don't log error on invalid SCION addresses in /etc/hosts
   [#303](https://github.com/scionproto-contrib/jpan/pull/303)
-- SNAP: Improved example and better warning in case of explicit control service address
+- SNAP: Improved example, better warning in case of explicit settings, and
+  prefer explicit setting over derived values.
   [#305](https://github.com/scionproto-contrib/jpan/pull/305)
 
 ### Added
