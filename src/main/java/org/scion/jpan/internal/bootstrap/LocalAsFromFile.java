@@ -81,7 +81,7 @@ public class LocalAsFromFile {
       } else {
         portRange = parsePortRange(dispatchedPorts.getAsString());
       }
-      JsonArray attr = safeGet(o, "attributes").getAsJsonArray();
+      JsonArray attr = safeGetArray(o, "attributes");
       for (int i = 0; i < attr.size(); i++) {
         if ("core".equals(attr.get(i).getAsString())) {
           isCoreAs = true;
@@ -108,6 +108,17 @@ public class LocalAsFromFile {
       throw new ScionRuntimeException("Entry not found in topology file: " + name);
     }
     return e;
+  }
+
+  private static JsonArray safeGetArray(JsonObject o, String name) {
+    JsonElement e = o.get(name);
+    if (e == null) {
+      throw new ScionRuntimeException("Entry not found in topology file: " + name);
+    }
+    if (e.isJsonNull()) {
+      return new JsonArray();
+    }
+    return e.getAsJsonArray();
   }
 
   private static LocalAS.DispatcherPortRange parsePortRange(String v) {

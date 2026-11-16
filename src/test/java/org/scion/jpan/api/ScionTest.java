@@ -344,6 +344,23 @@ class ScionTest {
   }
 
   @Test
+  void defaultService_bootstrapTopoFile_withAttributesNull() {
+    long dstIA = ScionUtil.parseIA("1-ff00:0:112");
+    InetSocketAddress dstAddress = new InetSocketAddress("::1", 12345);
+    try {
+      MockNetwork.startTiny(MockNetwork.Mode.AS_ONLY);
+      System.setProperty(
+          Constants.PROPERTY_BOOTSTRAP_TOPO_FILE, "topologies/topology-attr-null.json");
+      ScionService service = Scion.defaultService();
+      Path path = service.getPaths(dstIA, dstAddress).get(0);
+      assertNotNull(path);
+      assertEquals(0, MockDaemon.getAndResetCallCount()); // Daemon is not used!
+    } finally {
+      MockNetwork.stopTiny();
+    }
+  }
+
+  @Test
   void defaultService_bootstrapTopoFile_dispatcherPortRange_ignoredByExplicitPort()
       throws IOException {
     long dstIA = ScionUtil.parseIA("1-ff00:0:112");
