@@ -180,17 +180,12 @@ TODO
 
 ### Fixed
 
+--- TODO test arributes = null in TOPO file?
+
 - SNAP: ScionService would return non-unique ISD-AS numbers.
   [#307](https://github.com/scionproto-contrib/jpan/pull/307)
 
 ### Changed
-
---- TODO create unique Set<> of local ISD-ASes!
-
---- TODO test arributes = null in TOPO file?
-
--- TODO remove System.setProperty(PROPERTY_SNAP_AUTH_TOKEN, result.snapToken);
-   in ScionService!
 
 - Don't log error on invalid SCION addresses in /etc/hosts
   [#303](https://github.com/scionproto-contrib/jpan/pull/303)
