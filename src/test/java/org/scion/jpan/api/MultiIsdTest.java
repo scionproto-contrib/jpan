@@ -61,6 +61,19 @@ class MultiIsdTest {
   }
 
   @Test
+  void getIsdAsList() {
+    try (MockNetwork2 nw =
+        MockNetwork2.startPS(MockNetwork2.Topology.TINY4, "ASff00_0_111", "ASff00_0_112")) {
+      // Test that we have exactly two ASes in the list.
+      ScionService service = Scion.defaultService();
+      List<Long> isdAsList = service.getLocalIsdAsList();
+      assertEquals(2, isdAsList.size());
+      assertTrue(isdAsList.contains(AS_111));
+      assertTrue(isdAsList.contains(AS_112));
+    }
+  }
+
+  @Test
   void sendReceive_scionDatagramChannel() throws IOException {
     Client test =
         (pathBySourceAs, dst) -> {

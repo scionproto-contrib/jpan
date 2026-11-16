@@ -137,7 +137,7 @@ public class LocalAsFromPathService {
     if (snap.getIsdAsesCount() == 0) {
       return Collections.emptyList();
     }
-    return new ArrayList<>(snap.getIsdAsesList());
+    return snap.getIsdAsesList().stream().distinct().collect(Collectors.toList());
   }
 
   private static Underlays.ListUnderlaysResponse query(

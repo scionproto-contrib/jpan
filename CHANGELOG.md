@@ -178,6 +178,11 @@ TODO
 
 ## 0.9.0 - WIP
 
+### Fixed
+
+- SNAP: ScionService would return non-unique ISD-AS numbers.
+  [#307](https://github.com/scionproto-contrib/jpan/pull/307)
+
 ### Changed
 
 --- TODO create unique Set<> of local ISD-ASes!
