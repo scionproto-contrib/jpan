@@ -24,10 +24,6 @@ import org.scion.jpan.Path;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
 import org.scion.jpan.internal.bootstrap.LocalAS;
-import org.scion.jpan.internal.paths.ControlServiceGrpc;
-import org.scion.jpan.internal.paths.DaemonServiceGrpc;
-import org.scion.jpan.internal.paths.PathServiceRpc;
-import org.scion.jpan.internal.snap.SnapDataplaneDetails;
 
 public class ScionServiceExtensionTest {
 
@@ -36,7 +32,7 @@ public class ScionServiceExtensionTest {
     // Small test to confirm that we can create subclasses of ScionService. This is, for example,
     // Useful to create Mock-implementations for testing.
     MyLocalAs localAs = new MyLocalAs(Collections.singletonList(42L), true);
-    MyScionService mss = new MyScionService(localAs, null, null, null, null);
+    MyScionService mss = new MyScionService.Builder().localAs(localAs).build();
 
     assertEquals(42, (long) mss.getLocalIsdAsList().get(0));
     assertTrue(mss.checkLocalIsdAs);
@@ -67,13 +63,8 @@ public class ScionServiceExtensionTest {
     boolean checkLocalIsdAs = false;
     boolean checkPathFromSSA = false;
 
-    public MyScionService(
-        LocalAS localAS,
-        ControlServiceGrpc controlService,
-        PathServiceRpc pathService,
-        DaemonServiceGrpc daemonService,
-        SnapDataplaneDetails snapDataplaneDetails) {
-      super(localAS, controlService, pathService, daemonService, snapDataplaneDetails);
+    public MyScionService(Builder builder) {
+      super(builder);
     }
 
     @Override
@@ -86,6 +77,13 @@ public class ScionServiceExtensionTest {
     public List<Path> getPaths(ScionSocketAddress ssa) {
       checkPathFromSSA = true;
       return Collections.emptyList();
+    }
+
+    public static class Builder extends ScionService.Builder<MyScionService> {
+      @Override
+      public MyScionService build() {
+        return new MyScionService(this);
+      }
     }
   }
 }

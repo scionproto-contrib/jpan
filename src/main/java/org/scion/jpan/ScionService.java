@@ -72,38 +72,16 @@ public class ScionService {
     BOOTSTRAP_SNAP
   }
 
-  protected static class SSConfig {
-    String apiAuthToken;
-
-    public SSConfig(String authToken) {
-      this.apiAuthToken = authToken;
-    }
-  }
-
-  interface Constructor<T> {
-    T create(
-        LocalAS localAS,
-        ControlServiceGrpc controlService,
-        PathServiceRpc pathService,
-        DaemonServiceGrpc daemonService,
-        SnapDataplaneDetails snapDataplaneDetails);
-  }
-
-  protected ScionService(
-      LocalAS localAS,
-      ControlServiceGrpc controlService,
-      PathServiceRpc pathService,
-      DaemonServiceGrpc daemonService,
-      SnapDataplaneDetails snapDataplaneDetails) {
-    this.localAS = localAS;
-    this.controlService = controlService;
-    this.pathService = pathService;
-    this.daemonService = daemonService;
-    this.snapDataplaneDetails = snapDataplaneDetails;
+  protected ScionService(Builder<?> builder) {
+    this.localAS = builder.localAS;
+    this.controlService = builder.controlService;
+    this.pathService = builder.pathService;
+    this.daemonService = builder.daemonService;
+    this.snapDataplaneDetails = builder.snapDataplaneDetails;
     this.shutdownHook = addShutdownHook();
   }
 
-  static <T> T create(String addressOrHost, Mode mode, SSConfig cfg, Constructor<T> constructor) {
+  static <T extends ScionService> T create(String addressOrHost, Mode mode, Builder<T> builder) {
     final LocalAS localAS;
 
     switch (mode) {
@@ -118,27 +96,31 @@ public class ScionService {
           daemonService.close();
           throw new ScionRuntimeException("Could not connect to daemon at: " + addressOrHost, e);
         }
-        return constructor.create(localAS, null, null, daemonService, null);
+        return builder.localAs(localAS).daemonService(daemonService).build();
       case BOOTSTRAP_PATH_SERVICE:
       case BOOTSTRAP_SNAP:
         LOG.info("Bootstrapping with path service: {}", addressOrHost);
-        String auth = cfg != null ? cfg.apiAuthToken : null;
+        String auth = builder.snapApiToken;
         localAS = checkStartShim(ScionBootstrapper.fromPathService(addressOrHost, auth));
         PathServiceRpc pathService = PathServiceRpc.create(localAS);
         SnapDataplaneDetails snapDataplaneDetails = initializeSnapDataPlaneIfEnabled(localAS);
-        return constructor.create(localAS, null, pathService, null, snapDataplaneDetails);
+        return builder
+            .localAs(localAS)
+            .pathService(pathService)
+            .snapDetails(snapDataplaneDetails)
+            .build();
       case BOOTSTRAP_VIA_DNS:
         LOG.info("Bootstrapping control service via DNS: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromDns(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
+        return builder.localAs(localAS).controlService(ControlServiceGrpc.create(localAS)).build();
       case BOOTSTRAP_SERVER_IP:
         LOG.info("Bootstrapping control service with IP address: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromBootstrapServerIP(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
+        return builder.localAs(localAS).controlService(ControlServiceGrpc.create(localAS)).build();
       case BOOTSTRAP_TOPO_FILE:
         LOG.info("Bootstrapping control service from file: {}", addressOrHost);
         localAS = checkStartShim(ScionBootstrapper.fromTopoFile(addressOrHost));
-        return constructor.create(localAS, ControlServiceGrpc.create(localAS), null, null, null);
+        return builder.localAs(localAS).controlService(ControlServiceGrpc.create(localAS)).build();
       default:
         throw new UnsupportedOperationException();
     }
@@ -191,86 +173,107 @@ public class ScionService {
    * @return default instance
    */
   static ScionService defaultService() {
+    return defaultService(new Builder<>());
+  }
+
+  /**
+   * Returns the default instance of the ScionService. The default instance is connected to the
+   * daemon that is specified by the default properties or environment variables.
+   *
+   * <p>If no instance has been created yet, a new instance will be created with the provided
+   * builder.
+   *
+   * @return default instance
+   */
+  @SuppressWarnings("unchecked")
+  protected static <T extends ScionService> T defaultService(Builder<T> builder) {
     synchronized (LOCK) {
       // This is not 100% thread safe, but the worst that can happen is that
       // we call close() on a Service that has already been closed.
       if (defaultService != null) {
-        return defaultService;
+        return (T) defaultService;
       }
-
-      // try bootstrap service IP
-      String fileName =
-          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
-      if (fileName != null) {
-        defaultService = create(fileName, Mode.BOOTSTRAP_TOPO_FILE, null, ScionService::new);
-        return defaultService;
-      }
-
-      // Try SNAP discovery service
-      if (Config.isUnderlaySnapAllowed()) {
-        String authKey = Config.getSnapAuthKey();
-        String authService = Config.getSnapAuthenticationService();
-        if (authService != null && authKey != null) {
-          defaultService = serviceFromSnapAuth(authKey, authService);
-          return defaultService;
-        }
-      }
-
-      String pathService = Config.getPathService();
-      if (pathService != null) {
-        defaultService = create(pathService, Mode.BOOTSTRAP_PATH_SERVICE, null, ScionService::new);
-        return defaultService;
-      }
-
-      String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
-      if (server != null) {
-        defaultService = create(server, Mode.BOOTSTRAP_SERVER_IP, null, ScionService::new);
-        return defaultService;
-      }
-
-      String naptrName =
-          ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
-      if (naptrName != null) {
-        defaultService = create(naptrName, Mode.BOOTSTRAP_VIA_DNS, null, ScionService::new);
-        return defaultService;
-      }
-
-      // try daemon
-      String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
-      try {
-        defaultService = create(daemon, Mode.DAEMON, null, ScionService::new);
-        return defaultService;
-      } catch (ScionRuntimeException e) {
-        LOG.info(e.getMessage());
-        if (ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON) != null) {
-          throw e;
-        }
-      }
-
-      // try normal network
-      String searchDomain =
-          ScionUtil.getPropertyOrEnv(PROPERTY_DNS_SEARCH_DOMAINS, ENV_DNS_SEARCH_DOMAINS);
-      if (ScionUtil.getPropertyOrEnv(
-              PROPERTY_USE_OS_SEARCH_DOMAINS,
-              ENV_USE_OS_SEARCH_DOMAINS,
-              DEFAULT_USE_OS_SEARCH_DOMAINS)
-          || searchDomain != null) {
-        String dnsResolver = DNSHelper.searchForDiscoveryService();
-        if (dnsResolver != null) {
-          defaultService = create(dnsResolver, Mode.BOOTSTRAP_SERVER_IP, null, ScionService::new);
-          return defaultService;
-        }
-        LOG.info("No DNS record found for bootstrap server.");
-        throw new ScionRuntimeException(
-            "No DNS record found for bootstrap server. This means "
-                + "the DNS server may not have NAPTR records for the bootstrap server or your host "
-                + "may not have the search domains configured in /etc/resolv.conf or similar.");
-      }
-      throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
+      T newService = bootstrapService(builder);
+      defaultService = newService;
+      return newService;
     }
   }
 
-  private static ScionService serviceFromSnapAuth(String authKey, String authService) {
+  /**
+   * Performs service bootstrapping (detecting daemon, path service, ...),injects the detected
+   * service into the builder and calls `build()`.
+   *
+   * <p>This method can be used to bootstrap custom subclasses of `ScionService`.
+   *
+   * @return new ScionService.
+   */
+  protected static <T extends ScionService> T bootstrapService(Builder<T> builder) {
+    // try bootstrap service IP
+    String fileName =
+        ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_TOPO_FILE, ENV_BOOTSTRAP_TOPO_FILE);
+    if (fileName != null) {
+      return create(fileName, Mode.BOOTSTRAP_TOPO_FILE, builder);
+    }
+
+    // Try SNAP discovery service
+    if (Config.isUnderlaySnapAllowed()) {
+      String authKey = Config.getSnapAuthKey();
+      String authService = Config.getSnapAuthenticationService();
+      if (authService != null && authKey != null) {
+        return serviceFromSnapAuth(authKey, authService, builder);
+      }
+    }
+
+    String pathService = Config.getPathService();
+    if (pathService != null) {
+      return create(pathService, Mode.BOOTSTRAP_PATH_SERVICE, builder);
+    }
+
+    String server = ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_HOST, ENV_BOOTSTRAP_HOST);
+    if (server != null) {
+      return create(server, Mode.BOOTSTRAP_SERVER_IP, builder);
+    }
+
+    String naptrName =
+        ScionUtil.getPropertyOrEnv(PROPERTY_BOOTSTRAP_NAPTR_NAME, ENV_BOOTSTRAP_NAPTR_NAME);
+    if (naptrName != null) {
+      return create(naptrName, Mode.BOOTSTRAP_VIA_DNS, builder);
+    }
+
+    // try daemon
+    String daemon = ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON, DEFAULT_DAEMON);
+    try {
+      return create(daemon, Mode.DAEMON, builder);
+    } catch (ScionRuntimeException e) {
+      LOG.info(e.getMessage());
+      if (ScionUtil.getPropertyOrEnv(PROPERTY_DAEMON, ENV_DAEMON) != null) {
+        throw e;
+      }
+    }
+
+    // try normal network
+    String searchDomain =
+        ScionUtil.getPropertyOrEnv(PROPERTY_DNS_SEARCH_DOMAINS, ENV_DNS_SEARCH_DOMAINS);
+    if (ScionUtil.getPropertyOrEnv(
+            PROPERTY_USE_OS_SEARCH_DOMAINS,
+            ENV_USE_OS_SEARCH_DOMAINS,
+            DEFAULT_USE_OS_SEARCH_DOMAINS)
+        || searchDomain != null) {
+      String dnsResolver = DNSHelper.searchForDiscoveryService();
+      if (dnsResolver != null) {
+        return create(dnsResolver, Mode.BOOTSTRAP_SERVER_IP, builder);
+      }
+      LOG.info("No DNS record found for bootstrap server.");
+      throw new ScionRuntimeException(
+          "No DNS record found for bootstrap server. This means "
+              + "the DNS server may not have NAPTR records for the bootstrap server or your host "
+              + "may not have the search domains configured in /etc/resolv.conf or similar.");
+    }
+    throw new ScionRuntimeException("Could not connect to daemon, DNS or bootstrap resource.");
+  }
+
+  private static <T extends ScionService> T serviceFromSnapAuth(
+      String authKey, String authService, Builder<T> builder) {
     String apiToken = Config.getSnapAuthToken();
     if (apiToken != null && !apiToken.isEmpty()) {
       LOG.info("Using explicit endhost API token.");
@@ -306,9 +309,8 @@ public class ScionService {
     if (isEmpty(pathServices)) {
       throw new ScionRuntimeException("SNAP is configured but no PathService is given.");
     }
-    SSConfig cfg = new SSConfig(apiToken);
-    defaultService = create(pathServices, Mode.BOOTSTRAP_SNAP, cfg, ScionService::new);
-    return defaultService;
+    builder.snapApiToken(apiToken);
+    return create(pathServices, Mode.BOOTSTRAP_SNAP, builder);
   }
 
   private static boolean isEmpty(String s) {
@@ -563,7 +565,7 @@ public class ScionService {
     return localAS.getPortRange();
   }
 
-  InetSocketAddress getBorderRouterAddress(int interfaceID) {
+  protected InetSocketAddress getBorderRouterAddress(int interfaceID) {
     return localAS.getBorderRouterAddress(interfaceID);
   }
 
@@ -574,15 +576,63 @@ public class ScionService {
     return snapDataplaneDetails;
   }
 
-  ControlServiceGrpc getControlServiceConnection() {
+  protected ControlServiceGrpc getControlServiceConnection() {
     return controlService;
   }
 
-  DaemonServiceGrpc getDaemonConnection() {
+  protected DaemonServiceGrpc getDaemonConnection() {
     return daemonService;
   }
 
-  LocalAS getLocalAS() {
+  protected LocalAS getLocalAS() {
     return localAS;
+  }
+
+  public static class Builder<T extends ScionService> {
+    protected LocalAS localAS;
+    protected ControlServiceGrpc controlService;
+    protected PathServiceRpc pathService;
+    protected DaemonServiceGrpc daemonService;
+    protected SnapDataplaneDetails snapDataplaneDetails;
+    protected String snapApiToken;
+
+    public static Builder<ScionService> create() {
+      return new Builder<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    public T build() {
+      return (T) new ScionService(this);
+    }
+
+    public Builder<T> localAs(LocalAS localAS) {
+      this.localAS = localAS;
+      return this;
+    }
+
+    public Builder<T> controlService(ControlServiceGrpc controlService) {
+      this.controlService = controlService;
+      return this;
+    }
+
+    public Builder<T> daemonService(DaemonServiceGrpc daemonService) {
+      this.daemonService = daemonService;
+      return this;
+    }
+
+    public Builder<T> pathService(PathServiceRpc pathService) {
+      this.pathService = pathService;
+      return this;
+    }
+
+    public Builder<T> snapDetails(SnapDataplaneDetails snapDataplaneDetails) {
+      this.snapDataplaneDetails = snapDataplaneDetails;
+      return this;
+    }
+
+    public Builder<T> snapApiToken(String apiToken) {
+      this.snapApiToken = apiToken;
+      return this;
+    }
   }
 }

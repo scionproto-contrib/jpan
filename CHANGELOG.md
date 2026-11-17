@@ -13,12 +13,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Check scion-sdk version flag in http API
 - Performance TODO: When connected: buffer complete SCION header i.o. building it
   every time. Add cached header to "Path" for send()?
-- Use Builder for LocalAS?
-- Create Builder for ScionService or add SNP props to Channel.Builder???
 - Fix flaky MacOS build
   [ERROR]   NatMappingTest.testKeepAliveBR_ResetTimerAfterReceive:550 expected: <1> but was: <2>
-
-- After release: update exercise for PathSelector
 - Implement a "Marshaller":
   Inserts/strips SCION headers from a packet. That can be useful for implementations
   that cannot use ScionDatagramSocket:
@@ -33,7 +29,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
   (Path references SSA?) Or SPA?
   (Hide SSA.getPath)? 
   --> Document this (Conceptually: SSA has no Path. However, to enable drop-in use
-  of DatagramChannel, we associate a Payj wit some SSAs)
+  of DatagramChannel, we associate a Path with some SSAs)
   we internally )
 
 - Consider Performance/Security debugging mode:
@@ -133,7 +129,7 @@ TODO
 - Authenticate SCMP / EPIC !?!?!?
 - STUN: 
   - Always listen for STUN packets (e.g. eternally blocking receive()) in order to support on-demand STUN
-  - Validate IP of incoming packets agains known NAT mapped addresses? 
+  - Validate IP of incoming packets against known NAT mapped addresses? 
 - Improve PathPolicy API:
   - Chainable PathPolicies (can be done manually or by providing a combinator class)
   - PathSelector/Supplier (e.g. for traceroute policies)
@@ -202,6 +198,8 @@ TODO
   [#302](https://github.com/scionproto-contrib/jpan/pull/302)
 - CLAB support for PingPongDemo and traceroute demo
   [#304](https://github.com/scionproto-contrib/jpan/pull/304)
+- Builder and extensibility for `ScionService`
+  [#309](https://github.com/scionproto-contrib/jpan/pull/309)
 
 ## [0.8.1] - 2026-11-02
 
