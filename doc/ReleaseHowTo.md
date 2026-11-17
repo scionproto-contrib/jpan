@@ -16,16 +16,20 @@
       -> Currently disabled because the plugin causes NPEs  
 
 3) Run integration test
-   - Run `ShowEchoDemo`
+   - Run `ScmpEchoDemo`
    - Run `ScmpTracerouteDemo`
    - Run `ShowpathsDemo`
-   - Checkout SCION proto and Start scionproto topology:
+   - Checkout SCION proto and start scionproto topology:
       - `./scion.sh topology -c topology/default.topo`
       - `./scion.sh run`
       - Wait a bit for PCBs to propagate
       - Run `IntegrationTestLocal` in `org.scion.jpan.demo`
-   - Run ScionPacket example from https://github.com/netsec-ethz/scion-java-packet-example
-   - Run PingAll from https://github.com/netsec-ethz/scion-java-multiping
+      - `./scion.sh stop`
+   - From https://github.com/netsec-ethz/scion-java-packet-example run `ScionPacketExample` 
+   - From https://github.com/netsec-ethz/scion-java-multiping run `TracerouteAll` 
+   - From https://github.com/netsec-ethz/jpan-cli run
+     - `java -jar target/jpan-cli.jar traceroute 71-1916,0.0.0.0` 
+     - `java -jar target/jpan-cli.jar traceroute 71-1916,0.0.0.0 --snap-key-file /home/ztilmann/work/jpan/AUTH_KEY.txt --snap-auth-service auth.scion.anapaya.net --path-service-discovery https://discovery.scion.anapaya.net`
 
 4) Release
     - `git checkout master`

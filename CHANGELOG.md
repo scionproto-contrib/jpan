@@ -182,6 +182,8 @@ TODO
   [#308](https://github.com/scionproto-contrib/jpan/pull/308)
 - Fixed SNAP error messages in case of missing auth service.
   [#310](https://github.com/scionproto-contrib/jpan/pull/310)
+- Fixed release instructions.
+  [#311](https://github.com/scionproto-contrib/jpan/pull/311)
 
 ### Changed
 
