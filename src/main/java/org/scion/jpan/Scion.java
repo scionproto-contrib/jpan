@@ -15,11 +15,6 @@
 package org.scion.jpan;
 
 import java.io.Closeable;
-import org.scion.jpan.internal.bootstrap.LocalAS;
-import org.scion.jpan.internal.paths.ControlServiceGrpc;
-import org.scion.jpan.internal.paths.DaemonServiceGrpc;
-import org.scion.jpan.internal.paths.PathServiceRpc;
-import org.scion.jpan.internal.snap.SnapDataplaneDetails;
 
 public final class Scion {
 
@@ -108,16 +103,17 @@ public final class Scion {
   public static class CloseableService extends ScionService implements Closeable {
 
     static CloseableService create(String address, Mode mode) {
-      return ScionService.create(address, mode, null, CloseableService::new);
+      return ScionService.create(address, mode, new Builder());
     }
 
-    private CloseableService(
-        LocalAS localAS,
-        ControlServiceGrpc controlService,
-        PathServiceRpc pathService,
-        DaemonServiceGrpc daemonService,
-        SnapDataplaneDetails snapDataplaneDetails) {
-      super(localAS, controlService, pathService, daemonService, snapDataplaneDetails);
+    private CloseableService(Builder builder) {
+      super(builder);
+    }
+
+    static class Builder extends ScionService.Builder<CloseableService> {
+      public CloseableService build() {
+        return new CloseableService(this);
+      }
     }
   }
 }
