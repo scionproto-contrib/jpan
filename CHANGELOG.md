@@ -180,6 +180,8 @@ TODO
   [#307](https://github.com/scionproto-contrib/jpan/pull/307)
 - Allow topology.json `"attributes": null`
   [#308](https://github.com/scionproto-contrib/jpan/pull/308)
+- Fixed SNAP error messages in case of missing auth service.
+  [#310](https://github.com/scionproto-contrib/jpan/pull/310)
 
 ### Changed
 
