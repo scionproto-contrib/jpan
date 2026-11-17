@@ -221,6 +221,10 @@ public class ScionService {
       String authService = Config.getSnapAuthenticationService();
       if (authService != null && authKey != null) {
         return serviceFromSnapAuth(authKey, authService, builder);
+      } else if (authService != null) {
+        throw new ScionRuntimeException("SNAP auth service configured but no auth key is given");
+      } else if (authKey != null) {
+        throw new ScionRuntimeException("SNAP auth key is configured but no auth service is given");
       }
     }
 
