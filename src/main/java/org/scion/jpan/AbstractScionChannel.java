@@ -519,6 +519,10 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
       hdrType = receiveExtensionHeader(buffer, hdrType);
 
       InetSocketAddress firstHopAddress = getFirstHopAddress(buffer, srcAddress);
+      if (firstHopAddress == null) {
+        // invalid router ID -> drop packet
+        continue;
+      }
       ResponsePath path = ScionHeaderParser.extractResponsePath(buffer, firstHopAddress);
       if (hdrType.code() == expectedHdrTypeId) {
         return path;

@@ -59,7 +59,7 @@ override, else the first entry of `localAS.getSnapControlNodes()`), then
 static key. The result (a `SnapDataplaneDetails`, held as `ScionService.snapDataplaneDetails`) is
 what every channel built from that service uses to construct its `SnapTunnel`.
 
-`LocalAS.getBorderRouterAddress(interfaceId)` is a plain, strict border-router lookup: it throws if
+`LocalAS.getBorderRouterAddress(interfaceId)` is a plain, strict border-router lookup: it returns `null` if
 the interface ID isn't found. `LocalAS` carries no SNAP-specific state at all -- it is purely
 immutable, derived data from the endhost API's response (`getSnapControlNodes()` returns the raw
 `SnapControlNode` list, nothing more). The "first hop" needed for `PathMetadata`/`RequestPath` is

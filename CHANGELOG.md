@@ -195,9 +195,8 @@ TODO
   [#312](https://github.com/scionproto-contrib/jpan/pull/312)
 - Avoid border router check when using SNAP mode, in SNAP we don't have a list of border routers.
   [#313](https://github.com/scionproto-contrib/jpan/pull/313)
-
-TODO We should never throw an exception here, rather we should drop the packet if the interface ID is bad. Or maybe ignore it?
-Think again.
+- Drop packet if it has an invalid border router ID.
+  [#314](https://github.com/scionproto-contrib/jpan/pull/314)
 
 
 ## [0.8.2] - 2026-11-17

@@ -42,7 +42,11 @@ public class RequestPath extends Path {
     } else if (metadata.getRawPath().length == 0) {
       firstHop = new InetSocketAddress(dstIP, dstPort);
     } else {
-      firstHop = localAS.getBorderRouterAddress((int) metadata.getInterfaces().get(0).getId());
+      int interfaceId = (int) metadata.getInterfaces().get(0).getId();
+      firstHop = localAS.getBorderRouterAddress(interfaceId);
+      if (firstHop == null) {
+        throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
+      }
     }
     return create(metadata, dstIP, dstPort, firstHop);
   }
