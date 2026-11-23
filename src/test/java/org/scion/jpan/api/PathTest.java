@@ -19,9 +19,15 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
+import java.util.List;
+
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.*;
+import org.scion.jpan.internal.bootstrap.LocalAS;
+import org.scion.jpan.internal.bootstrap.TrcStore;
 import org.scion.jpan.internal.util.IPHelper;
+import org.scion.jpan.testutil.ExamplePacket;
 
 class PathTest {
 
@@ -40,8 +46,8 @@ class PathTest {
 
   @Test
   void requestPathConstructor() {
-    byte[] raw1 = new byte[] {1, 2, 3};
-    byte[] raw2 = new byte[] {1, 2, 3, 4};
+    byte[] raw1 = {1, 2, 3};
+    byte[] raw2 = {1, 2, 3, 4};
     PathMetadata meta =
         PathMetadata.newBuilder().setSrcIsdAs(123).setDstIsdAs(1234).setRaw(raw1).build();
     TestRequestPath path = new TestRequestPath(meta, raw2, null, 123, 1234, null, 1);
@@ -152,5 +158,62 @@ class PathTest {
         new byte[] {127, 0, 0, 99},
         22222,
         IPHelper.toInetSocketAddress("127.0.0.55:12345"));
+  }
+
+  @Test
+  void create_failOnInvalidBrId() throws UnknownHostException {
+    // Ensure that we get an error when we create a path where raw path and metadata don't match
+    int interfaceId = 123456;
+    PathMetadata meta =
+        PathMetadata.newBuilder()
+            .setSrcIsdAs(123)
+            .setDstIsdAs(456)
+            .setRaw(ExamplePacket.PATH_RAW_TINY_110_112)
+            .addInterfaces(PathMetadata.PathInterface.create(789, interfaceId))
+            .build();
+    LocalAS localAS =
+        new MyLocalAs(
+            Collections.emptyList(),
+            false,
+            0,
+            LocalAS.DispatcherPortRange.createAll(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            Collections.emptyList(),
+            null,
+            null);
+    InetAddress dstIP = IPHelper.toInetAddress("191.168.123.123");
+    ScionRuntimeException e =
+        assertThrows(
+            ScionRuntimeException.class,
+            () -> PackageVisibilityHelper.createRequestPath(meta, dstIP, 12345, localAS, false));
+    assertTrue(e.getMessage().contains(Integer.toString(interfaceId)));
+  }
+
+  private static class MyLocalAs extends LocalAS {
+    protected MyLocalAs(
+        List<Long> localIsdAs,
+        boolean isCoreAs,
+        int localMtu,
+        DispatcherPortRange portRange,
+        List<ServiceNode> controlServices,
+        List<ServiceNode> discoveryServices,
+        List<BorderRouter> borderRouters,
+        List<SnapControlNode> snapControlNodes,
+        String snapAuthToken,
+        TrcStore trcStore) {
+      super(
+          localIsdAs,
+          isCoreAs,
+          localMtu,
+          portRange,
+          controlServices,
+          discoveryServices,
+          borderRouters,
+          snapControlNodes,
+          snapAuthToken,
+          trcStore);
+    }
   }
 }

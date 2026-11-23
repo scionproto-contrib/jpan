@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.time.Instant;
 import java.util.List;
+
+import org.scion.jpan.internal.bootstrap.LocalAS;
 import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.paths.ControlServiceGrpc;
@@ -188,6 +190,11 @@ public class PackageVisibilityHelper {
             .addInterfaces(PathMetadata.PathInterface.create(dstIsdAs, 1))
             .build();
     return RequestPath.create(path, dstHost, dstPort, IPHelper.toInetSocketAddress(firstHopString));
+  }
+
+  public static RequestPath createRequestPath(
+          PathMetadata metadata, InetAddress dstIP, int dstPort, LocalAS localAS, boolean isSnap) {
+    return RequestPath.create(metadata, dstIP, dstPort, localAS, isSnap);
   }
 
   public static RequestPath createRequestPath(PathMetadata path, InetSocketAddress dst) {
