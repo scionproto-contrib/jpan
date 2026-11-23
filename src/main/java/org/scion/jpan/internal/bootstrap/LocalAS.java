@@ -17,7 +17,6 @@ package org.scion.jpan.internal.bootstrap;
 import java.net.InetSocketAddress;
 import java.util.*;
 import org.scion.jpan.Constants;
-import org.scion.jpan.ScionRuntimeException;
 import org.scion.jpan.internal.util.IPHelper;
 
 /** Information about local AS. */
@@ -104,14 +103,11 @@ public class LocalAS {
    * Address of the first hop border router for a given interface ID.
    *
    * @param interfaceId border router interface ID
-   * @return The address of the border router
+   * @return The address of the border router or 'null' if the br ID is not found.
    */
   public InetSocketAddress getBorderRouterAddress(int interfaceId) {
     BorderRouter br = interfaceIDs.get(interfaceId);
-    if (br == null) {
-      throw new ScionRuntimeException("No router found with interface ID " + interfaceId);
-    }
-    return br.internalAddress;
+    return br == null ? null : br.internalAddress;
   }
 
   /**
