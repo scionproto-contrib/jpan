@@ -108,6 +108,6 @@ final class SnapDemoBootstrap {
 
   /** Human-readable description of which endhost API source is in use, for demo log output. */
   static String endhostApiDescription(String endhostApi, String discoveryEndpoint) {
-    return discoveryEndpoint != null ? "discovery:" + discoveryEndpoint : endhostApi;
+    return discoveryEndpoint != null ? "discovery: " + discoveryEndpoint : endhostApi;
   }
 }

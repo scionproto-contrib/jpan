@@ -22,10 +22,12 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.scion.jpan.PackageVisibilityHelper;
+import org.scion.jpan.Path;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketAddress;
+import org.scion.jpan.ScionUtil;
 import org.scion.jpan.testutil.MockEchoServer;
 import org.scion.jpan.testutil.MockNetwork2;
 import org.scion.jpan.testutil.TestUtil;
@@ -85,6 +87,35 @@ class SnapScionDatagramChannelServiceTest {
         // plain, non-SNAP UDP echo) received it and sent it back through the tunnel.
         byte[] received = TestUtil.receiveWithRetry(channel);
         assertNotNull(received, "expected the mirrored reply to come back through the SNAP tunnel");
+        assertArrayEquals(sent, received);
+      }
+    }
+  }
+
+  /**
+   * Regression test: receiving a packet with a non-empty path used to look up the local border
+   * router of the path's last interface to build the response path. With SNAP the client never
+   * talks to border routers directly (it only knows the SNAP dataplane), so that lookup threw "No
+   * router found with interface ID ..." for any interface not advertised as a UDP router.
+   */
+  @Test
+  void receive_withNonEmptyPath_doesNotRequireBorderRouter() throws Exception {
+    try (MockNetwork2 nw = MockNetwork2.startSnap(MockNetwork2.Topology.TINY4B, "ASff00_0_112");
+        MockEchoServer mirror = MockEchoServer.start()) {
+      nw.getSnapService().relayTo(mirror.getAddress());
+
+      ScionService service = Scion.defaultService();
+      InetSocketAddress dstAddress = new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345);
+      // Remote AS: the path is non-empty. The mirror echoes the packet verbatim, so the received
+      // path's last hop is in 1-ff00:0:111, whose interface is unknown to the local AS 112.
+      Path path = service.getPaths(ScionUtil.parseIA("1-ff00:0:111"), dstAddress).get(0);
+      assertTrue(path.getRawPath().length > 0);
+
+      try (ScionDatagramChannel channel =
+          ScionDatagramChannel.newBuilder().service(service).open()) {
+        byte[] sent = {1, 2, 3};
+        channel.send(ByteBuffer.wrap(sent), path);
+        byte[] received = TestUtil.receiveWithRetry(channel);
         assertArrayEquals(sent, received);
       }
     }

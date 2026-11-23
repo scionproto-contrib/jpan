@@ -531,7 +531,9 @@ abstract class AbstractScionChannel<C extends AbstractScionChannel<?>> implement
   }
 
   protected InetSocketAddress getFirstHopAddress(ByteBuffer buffer, InetSocketAddress srcAddress) {
-    if (getService() != null) {
+    // With SNAP, all packets go through the SNAP tunnel; the client does not know (and does not
+    // need) the local border routers. The first hop of a response path is ignored when sending.
+    if (getService() != null && snapUnderlay == null) {
       int pathPos = ScionHeaderParser.extractPathHeaderPosition(buffer);
       // If we have a path we need to use it to get the return address.
       // If we don't have a path (local AS) we need to use the underlay IP address.

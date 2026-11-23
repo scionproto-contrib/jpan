@@ -174,10 +174,31 @@ TODO
 
 ## 0.9.0 - WIP
 
+- TODO Endhost API version marker: Endhost-API-Server-Version
+- TODO Distinguish border routers by ISD (non-unique interface IDs)
+- TODO What is up with path-services not being listed in SNAP discovery service
+
+Two JPAN bugs found along the way:
+- receive() with SNAP: ScionDatagramChannel.receive() throws No router found with interface ID … for any UDP packet that arrives over an inter-AS path. AbstractScionChannel.getFirstHopAddress() looks for a local border router, and SNAP mode has none. This is still the case on your master branch.
+- Source port 0: ScionHeaderParser.validateUDP drops packets with UDP source port 0. scionproto sends the SVC request to port 0 and the CS swaps the ports in its reply, so I send the request to port 30252 instead.
+
+JPAN also can't send to SVC addresses (the address type is hard-coded to 0), so the demo patches that header field just before sending.
+
+TODO
+- Think how to implement multi-page segment requests.
+  - By default, only use first page?
+  - With special policies, ask for additional pages? How do we specify that? -> Just an option in the Selector or maybe in the ScionService?
+
 ### Fixed
 
 - Post 0.8.2 release cleanup.
   [#312](https://github.com/scionproto-contrib/jpan/pull/312)
+- Avoid border router check when using SNAP mode, in SNAP we don't have a list of border routers.
+  [#313](https://github.com/scionproto-contrib/jpan/pull/313)
+
+TODO We should never throw an exception here, rather we should drop the packet if the interface ID is bad. Or maybe ignore it?
+Think again.
+
 
 ## [0.8.2] - 2026-11-17
 
