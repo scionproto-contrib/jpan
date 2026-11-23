@@ -27,13 +27,17 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketOptions;
+import org.scion.jpan.internal.header.PathRawParserLight;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
+import org.scion.jpan.testutil.MockDatagramChannel;
 import org.scion.jpan.testutil.TestUtil;
 
 class DatagramChannelPacketValidationTest {
@@ -134,6 +138,54 @@ class DatagramChannelPacketValidationTest {
 
     // check results
     assertEquals(1, receiveCount.get());
+  }
+
+  @Test
+  void receive_invalidBorderRouterId_isDropped() throws IOException {
+    // An incoming packet whose last hop field references an unknown border router interface must
+    // be dropped silently, i.e. it must not cause an exception in receive().
+    String topoFile = "topologies/tiny4/ASff00_0_112/topology.json";
+    int invalidInterfaceId = 0x7777;
+    InetSocketAddress underlaySrc = new InetSocketAddress("127.0.0.1", 31012);
+
+    // Packet with invalid BR ID: overwrite ingress and egress of the last hop field.
+    byte[] badPacket = packetBytes.clone();
+    ByteBuffer bad = ByteBuffer.wrap(badPacket);
+    int pathPos = ScionHeaderParser.extractPathHeaderPosition(bad);
+    bad.position(pathPos);
+    int segCount = PathRawParserLight.extractSegmentCount(bad);
+    int hopCount = PathRawParserLight.extractHopCount(bad);
+    int lastHopFieldPos = pathPos + 4 + segCount * 8 + (hopCount - 1) * 12;
+    bad.putShort(lastHopFieldPos + 2, (short) invalidInterfaceId);
+    bad.putShort(lastHopFieldPos + 4, (short) invalidInterfaceId);
+    bad.clear();
+    assertEquals(invalidInterfaceId, PathRawParserLight.extractLastInterfaceID(bad, pathPos));
+
+    // First deliver the bad packet, then the original (good) packet.
+    AtomicInteger underlayReceiveCount = new AtomicInteger();
+    MockDatagramChannel mock = MockDatagramChannel.open();
+    mock.setReceiveCallback(
+        buf -> {
+          buf.put(underlayReceiveCount.getAndIncrement() == 0 ? badPacket : packetBytes);
+          return underlaySrc;
+        });
+
+    ScionService service = Scion.newServiceWithTopologyFile(topoFile);
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mock)) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      ByteBuffer response = ByteBuffer.allocate(500);
+      ScionPathAddress src = assertDoesNotThrow(() -> channel.receive(response));
+
+      // The bad packet was dropped and the good packet was received.
+      assertEquals(2, underlayReceiveCount.get());
+      assertNotNull(src);
+      assertNotNull(src.getPath().getFirstHopAddress());
+      response.flip();
+      assertEquals(MSG, Charset.defaultCharset().decode(response).toString());
+    } finally {
+      service.close();
+      ScionService.closeDefault();
+    }
   }
 
   private void startServer(boolean openThrowOnBadPacket, boolean isBlocking, ManagedThreadNews mtn)
