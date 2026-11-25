@@ -37,6 +37,7 @@ import org.scion.jpan.demo.inspector.ScmpHeader;
 import org.scion.jpan.internal.util.IPHelper;
 import org.scion.jpan.testutil.Barrier;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.MalformedPackets;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.MockNetwork;
 import org.scion.jpan.testutil.MockNetwork2;
@@ -100,6 +101,28 @@ class ShimTest {
   void testShim_noDaemon() throws IOException {
     try (MockNetwork2 unused = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110")) {
       testShim();
+    }
+  }
+
+  @Test
+  void testShim_survivesMalformedPackets() throws IOException {
+    try (MockNetwork2 unused = MockNetwork2.start(MockNetwork2.Topology.MINIMAL, "ASff00_0_110")) {
+      Scion.defaultService();
+      assertTrue(Shim.isInstalled());
+      testScmpEchoReflect();
+
+      // Send malformed packets to the SHIM. None of them must stop the SHIM.
+      InetSocketAddress shim =
+          new InetSocketAddress(InetAddress.getLoopbackAddress(), Constants.SCMP_PORT);
+      try (DatagramChannel sender = DatagramChannel.open()) {
+        for (byte[] packet : MalformedPackets.all().values()) {
+          sender.send(ByteBuffer.wrap(packet), shim);
+        }
+      }
+
+      // Verify that the SHIM is still alive and answers SCMP echo requests.
+      testScmpEchoReflect();
+      assertTrue(Shim.isInstalled());
     }
   }
 

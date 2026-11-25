@@ -197,7 +197,8 @@ TODO
   [#313](https://github.com/scionproto-contrib/jpan/pull/313)
 - Drop packet if it has an invalid border router ID.
   [#314](https://github.com/scionproto-contrib/jpan/pull/314)
-
+- Hardened validation of malformed packets.
+  [#315](https://github.com/scionproto-contrib/jpan/pull/315)
 
 ## [0.8.2] - 2026-11-17
 

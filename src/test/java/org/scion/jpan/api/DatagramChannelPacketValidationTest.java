@@ -24,17 +24,23 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.scion.jpan.Scion;
 import org.scion.jpan.ScionDatagramChannel;
+import org.scion.jpan.ScionException;
 import org.scion.jpan.ScionPathAddress;
 import org.scion.jpan.ScionService;
 import org.scion.jpan.ScionSocketOptions;
 import org.scion.jpan.internal.header.PathRawParserLight;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.MalformedPackets;
 import org.scion.jpan.testutil.ManagedThread;
 import org.scion.jpan.testutil.ManagedThreadNews;
 import org.scion.jpan.testutil.MockDatagramChannel;
@@ -185,6 +191,87 @@ class DatagramChannelPacketValidationTest {
     } finally {
       service.close();
       ScionService.closeDefault();
+    }
+  }
+
+  static Stream<Arguments> malformedPackets() {
+    return MalformedPackets.all().entrySet().stream()
+        .map(e -> Arguments.of(e.getKey(), e.getValue()));
+  }
+
+  @Test
+  void validate_goodPacket() {
+    assertNull(ScionHeaderParser.validate(ByteBuffer.wrap(MalformedPackets.goodUdpPacket())));
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("malformedPackets")
+  void validate_malformedPacket(String name, byte[] packet) {
+    ByteBuffer buffer = ByteBuffer.wrap(packet);
+    String result = assertDoesNotThrow(() -> ScionHeaderParser.validate(buffer));
+    assertNotNull(result, name);
+    assertEquals(0, buffer.position());
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("malformedPackets")
+  void receive_malformedPacket_noService_isDropped(String name, byte[] packet) throws IOException {
+    receiveMalformedThenGoodPacket(packet, null);
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("malformedPackets")
+  void receive_malformedPacket_withService_isDropped(String name, byte[] packet)
+      throws IOException {
+    String topoFile = "topologies/tiny4/ASff00_0_112/topology.json";
+    ScionService service = Scion.newServiceWithTopologyFile(topoFile);
+    try {
+      receiveMalformedThenGoodPacket(packet, service);
+    } finally {
+      service.close();
+      ScionService.closeDefault();
+    }
+  }
+
+  @ParameterizedTest(name = "{0}")
+  @MethodSource("malformedPackets")
+  void receive_malformedPacket_throwOnParserFailure(String name, byte[] packet) throws IOException {
+    MockDatagramChannel mock = MockDatagramChannel.open();
+    mock.setReceiveCallback(
+        buf -> {
+          buf.put(packet);
+          return new InetSocketAddress("127.0.0.1", 31012);
+        });
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(null, mock)) {
+      channel.setOption(ScionSocketOptions.SCION_API_THROW_PARSER_FAILURE, true);
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      // Only ScionException (an IOException) is acceptable, no unchecked exceptions.
+      assertThrows(ScionException.class, () -> channel.receive(ByteBuffer.allocate(500)));
+    }
+  }
+
+  private void receiveMalformedThenGoodPacket(byte[] badPacket, ScionService service)
+      throws IOException {
+    // First deliver the bad packet, then a good packet.
+    AtomicInteger underlayReceiveCount = new AtomicInteger();
+    MockDatagramChannel mock = MockDatagramChannel.open();
+    mock.setReceiveCallback(
+        buf -> {
+          boolean first = underlayReceiveCount.getAndIncrement() == 0;
+          buf.put(first ? badPacket : MalformedPackets.goodUdpPacket());
+          return new InetSocketAddress("127.0.0.1", 31012);
+        });
+
+    try (ScionDatagramChannel channel = ScionDatagramChannel.open(service, mock)) {
+      channel.bind(new InetSocketAddress(InetAddress.getLoopbackAddress(), 12345));
+      ByteBuffer response = ByteBuffer.allocate(500);
+      ScionPathAddress src = assertDoesNotThrow(() -> channel.receive(response));
+
+      // The bad packet was dropped and the good packet was received.
+      assertEquals(2, underlayReceiveCount.get());
+      assertNotNull(src);
+      response.flip();
+      assertEquals(MalformedPackets.GOOD_MSG, Charset.defaultCharset().decode(response).toString());
     }
   }
 
