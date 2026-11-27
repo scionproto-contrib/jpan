@@ -26,10 +26,12 @@ import org.scion.jpan.demo.inspector.PathHeaderScion;
 import org.scion.jpan.demo.inspector.ScionHeader;
 import org.scion.jpan.demo.inspector.ScionPacketInspector;
 import org.scion.jpan.demo.inspector.ScmpHeader;
+import org.scion.jpan.internal.header.HeaderConstants;
 import org.scion.jpan.internal.header.ScionHeaderParser;
 import org.scion.jpan.internal.header.ScmpParser;
 import org.scion.jpan.internal.util.ByteUtil;
 import org.scion.jpan.testutil.ExamplePacket;
+import org.scion.jpan.testutil.MalformedPackets;
 
 class ScionHeaderParserTest {
 
@@ -160,6 +162,123 @@ class ScionHeaderParserTest {
     ByteBuffer data = createScmpResponse(Scmp.TypeCode.TYPE_4_CODE_51);
     assertEquals(4, ScmpParser.extractTypeCode(data).type().id());
     assertEquals(51, ScmpParser.extractTypeCode(data).code());
+  }
+
+  @Test
+  void validate_goodPackets() {
+    assertNull(ScionHeaderParser.validate(ByteBuffer.wrap(packetBytes)));
+    assertNull(ScionHeaderParser.validate(ByteBuffer.wrap(MalformedPackets.goodUdpPacket())));
+  }
+
+  @Test
+  void validate_version() {
+    byte[] packet = packetBytes.clone();
+    packet[0] = (byte) 0x10; // version = 1
+    assertValidationFails(packet, "version: expected 0, got 1");
+  }
+
+  @Test
+  void validate_nextHeader() {
+    byte[] packet = packetBytes.clone();
+    packet[4] = 6; // TCP
+    assertValidationFails(packet, "nextHeader: expected {17, 200, 201, 202}, got 6");
+  }
+
+  @Test
+  void validate_extensionHeader_HopByHop() {
+    byte[] packet = packetBytes.clone();
+    packet[4] = (byte) HeaderConstants.HdrTypes.HOP_BY_HOP.code();
+    assertValidationFails(packet, "Unsupported header type: 200");
+  }
+
+  @Test
+  void validate_extensionHeader_EndToEnd() {
+    byte[] packet = packetBytes.clone();
+    packet[4] = (byte) HeaderConstants.HdrTypes.END_TO_END.code();
+    assertValidationFails(packet, "Unsupported header type: 201");
+  }
+
+  @Test
+  void validate_pathType() {
+    byte[] packet = packetBytes.clone();
+    packet[8] = 2; // path type 2 = OneHopPath (not supported)
+    assertValidationFails(packet, "Invalid path type: expected 0 or 1, got 2");
+  }
+
+  @Test
+  void validate_dstAddressType() {
+    byte[] packet = packetBytes.clone();
+    packet[9] = (byte) ((packet[9] & 0x3F) | 0x40); // DT = 1
+    assertValidationFails(packet, "Invalid destination address type");
+  }
+
+  @Test
+  void validate_srcAddressType() {
+    byte[] packet = packetBytes.clone();
+    packet[9] = (byte) ((packet[9] & 0xF3) | 0x04); // ST = 1
+    assertValidationFails(packet, "Invalid source address type");
+  }
+
+  @Test
+  void validate_reservedField() {
+    byte[] packet = packetBytes.clone();
+    packet[11] = 1;
+    assertValidationFails(packet, "Invalid reserved field");
+  }
+
+  @Test
+  void validate_emptyPathWithPathTypeScion() {
+    byte[] packet = MalformedPackets.goodUdpPacket();
+    assertEquals(0, packet[8]); // path type EMPTY
+    packet[8] = 1; // path type SCION
+    assertValidationFails(packet, "Path is empty but path type is: 1");
+  }
+
+  @Test
+  void validate_nonEmptyPathWithPathTypeEmpty() {
+    byte[] packet = packetBytes.clone();
+    assertEquals(1, packet[8]); // path type SCION
+    packet[8] = 0; // path type EMPTY
+    assertValidationFails(packet, "Path is not empty but path type is: 0");
+  }
+
+  @Test
+  void validate_pathWithThreeSegments() {
+    // 3 info fields + 1+2+3 hop fields
+    int validLength = 3 * 8 + 6 * 12;
+    byte[] valid =
+        MalformedPackets.udpPacketWithPath(MalformedPackets.pathMeta(1, 2, 3, validLength));
+    assertNull(ScionHeaderParser.validate(ByteBuffer.wrap(valid)));
+
+    byte[] tooShort = MalformedPackets.pathMeta(1, 2, 3, validLength - 12);
+    assertValidationFails(
+        MalformedPackets.udpPacketWithPath(tooShort), "Invalid path length: expected 100, got 88");
+  }
+
+  @Test
+  void validate_udpSrcPortZero() {
+    byte[] packet = packetBytes.clone();
+    int udpPos = ScionHeaderParser.extractHeaderLength(ByteBuffer.wrap(packet));
+    packet[udpPos] = 0;
+    packet[udpPos + 1] = 0;
+    assertValidationFails(packet, "Invalid source port: 0");
+  }
+
+  @Test
+  void validate_udpDstPortZero() {
+    byte[] packet = packetBytes.clone();
+    int udpPos = ScionHeaderParser.extractHeaderLength(ByteBuffer.wrap(packet));
+    packet[udpPos + 2] = 0;
+    packet[udpPos + 3] = 0;
+    assertValidationFails(packet, "Invalid destination port: 0");
+  }
+
+  private static void assertValidationFails(byte[] packet, String expectedMessage) {
+    ByteBuffer buffer = ByteBuffer.wrap(packet);
+    String result = ScionHeaderParser.validate(buffer);
+    assertNotNull(result);
+    assertTrue(result.contains(expectedMessage), result);
+    assertEquals(0, buffer.position());
   }
 
   @Test

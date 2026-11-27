@@ -313,7 +313,26 @@ public class ScionHeaderParser {
     return 28 + dstLen + srcLen;
   }
 
+  /**
+   * Validate an incoming packet. This method never throws an exception, malformed packets are
+   * reported via the return value. The buffer's position is not changed.
+   *
+   * @param data The packet buffer
+   * @return 'null' if the packet is valid, otherwise an error message.
+   */
   public static String validate(ByteBuffer data) {
+    int start = data.position();
+    try {
+      return validateInternal(data);
+    } catch (RuntimeException e) {
+      // Safety net: this should not happen, but we must never fail on incoming packets.
+      return "SCION packet validation failed: malformed packet: " + e;
+    } finally {
+      data.position(start);
+    }
+  }
+
+  private static String validateInternal(ByteBuffer data) {
     // TODO this approach to error handling is not ideal.
     //   Flooding a receiver with bad packets may cause unnecessary CPU and
     //   garbage collection cost due to creation of error messages.
@@ -370,13 +389,24 @@ public class ScionHeaderParser {
     if (stsl != 0b0000 && stsl != 0b0011) { // Allow also IPv4SVC=0b0100 ?
       return PRE
           + "Invalid source address type: expected 0b000 or 0b111, got "
-          + Integer.toBinaryString(dtdl);
+          + Integer.toBinaryString(stsl);
     }
     int reserved = ByteUtil.readInt(i2, 16, 16);
     if (reserved != 0) {
       return PRE
           + "Invalid reserved field: expected '0b0000_0000_0000_0000', got "
           + Integer.toBinaryString(reserved);
+    }
+    // The header must at least contain the common header and the address header.
+    // Since hdrLenBytes <= packet length (see above), this also ensures that the address header
+    // is contained in the packet.
+    int minHdrLenBytes = 12 + 16 + (dl + 1) * 4 + (sl + 1) * 4;
+    if (hdrLenBytes < minHdrLenBytes) {
+      return PRE
+          + "Invalid header length: expected at least "
+          + minHdrLenBytes
+          + ", got "
+          + hdrLenBytes;
     }
 
     // Address header
@@ -390,23 +420,9 @@ public class ScionHeaderParser {
     long dstIsdAs = data.getLong(); // TODO match against local ISD/ASes
     long srcIsdAs = data.getLong();
 
-    byte[] bytesDst = new byte[(dl + 1) * 4];
-    data.get(bytesDst);
-
-    byte[] bytesSrc = new byte[(sl + 1) * 4];
-    data.get(bytesSrc);
-
-    try {
-      InetAddress.getByAddress(bytesDst);
-    } catch (UnknownHostException e) {
-      return PRE + "Error decoding destination IP address: " + e.getMessage();
-    }
-
-    try {
-      InetAddress.getByAddress(bytesSrc);
-    } catch (UnknownHostException e) {
-      return PRE + "Error decoding source IP address: " + e.getMessage();
-    }
+    // Skip the host addresses. Their lengths are 4 or 16 bytes (DL/SL were validated above),
+    // so they can always be decoded by InetAddress.getByAddress().
+    data.position(data.position() + (dl + 1) * 4 + (sl + 1) * 4);
 
     // raw path
     byte[] path = new byte[start + hdrLenBytes - data.position()];
@@ -417,15 +433,51 @@ public class ScionHeaderParser {
     if (path.length > 0 && pathType != 1) {
       return PRE + "Path is not empty but path type is: " + pathType;
     }
-    // TODO validate path
+    if (path.length > 0) {
+      String pathError = validatePath(path);
+      if (pathError != null) {
+        return PRE + pathError;
+      }
+    }
 
     data.position(start + hdrLenBytes);
     if (nextHeader == HeaderConstants.HdrTypes.UDP.code()) {
+      if (payLoadLen < 8) {
+        return PRE + "Invalid payload length: UDP header requires 8 bytes, got " + payLoadLen;
+      }
       return validateUDP(data, start);
     } else if (nextHeader == HeaderConstants.HdrTypes.SCMP.code()) {
+      if (payLoadLen < 4) {
+        return PRE + "Invalid payload length: SCMP header requires 4 bytes, got " + payLoadLen;
+      }
       return validateSCMP(data, start);
     }
     return PRE + "Unsupported header type: " + nextHeader;
+  }
+
+  /**
+   * Validate the structure of a (non-empty) SCION path: the segment lengths in the path meta header
+   * must be consistent with each other and with the length of the path.
+   *
+   * @param path raw path. The length is always a multiple of 4 (HdrLen is in units of 4 bytes) and
+   *     non-zero, so the path meta header is always present.
+   * @return 'null' if the path is valid, otherwise an error message.
+   */
+  private static String validatePath(byte[] path) {
+    int i0 = ByteBuffer.wrap(path).getInt(0);
+    int seg0Len = ByteUtil.readInt(i0, 14, 6);
+    int seg1Len = ByteUtil.readInt(i0, 20, 6);
+    int seg2Len = ByteUtil.readInt(i0, 26, 6);
+    if (seg0Len == 0 || (seg1Len == 0 && seg2Len > 0)) {
+      return "Invalid path segment lengths: " + seg0Len + "/" + seg1Len + "/" + seg2Len;
+    }
+    int nInfoFields = 1 + (seg1Len > 0 ? 1 : 0) + (seg2Len > 0 ? 1 : 0);
+    int nHopFields = seg0Len + seg1Len + seg2Len;
+    int expectedLength = 4 + nInfoFields * 8 + nHopFields * 12;
+    if (path.length != expectedLength) {
+      return "Invalid path length: expected " + expectedLength + ", got " + path.length;
+    }
+    return null;
   }
 
   private static String validateUDP(ByteBuffer data, int start) {
@@ -458,7 +510,7 @@ public class ScionHeaderParser {
     // TODO validate checksum
 
     Scmp.TypeCode typeCode = Scmp.TypeCode.parseOrNull(type, code);
-    if (typeCode == null) {
+    if (typeCode == null || typeCode.type() == Scmp.Type.ERROR_3) {
       return PRE + "Unknown type code: " + type + " / " + code;
     }
     Scmp.Type typeEnum = Scmp.Type.parse(type);
