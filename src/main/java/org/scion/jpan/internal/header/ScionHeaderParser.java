@@ -420,23 +420,9 @@ public class ScionHeaderParser {
     long dstIsdAs = data.getLong(); // TODO match against local ISD/ASes
     long srcIsdAs = data.getLong();
 
-    byte[] bytesDst = new byte[(dl + 1) * 4];
-    data.get(bytesDst);
-
-    byte[] bytesSrc = new byte[(sl + 1) * 4];
-    data.get(bytesSrc);
-
-    try {
-      InetAddress.getByAddress(bytesDst);
-    } catch (UnknownHostException e) {
-      return PRE + "Error decoding destination IP address: " + e.getMessage();
-    }
-
-    try {
-      InetAddress.getByAddress(bytesSrc);
-    } catch (UnknownHostException e) {
-      return PRE + "Error decoding source IP address: " + e.getMessage();
-    }
+    // Skip the host addresses. Their lengths are 4 or 16 bytes (DL/SL were validated above),
+    // so they can always be decoded by InetAddress.getByAddress().
+    data.position(data.position() + (dl + 1) * 4 + (sl + 1) * 4);
 
     // raw path
     byte[] path = new byte[start + hdrLenBytes - data.position()];
@@ -473,13 +459,11 @@ public class ScionHeaderParser {
    * Validate the structure of a (non-empty) SCION path: the segment lengths in the path meta header
    * must be consistent with each other and with the length of the path.
    *
-   * @param path raw path
+   * @param path raw path. The length is always a multiple of 4 (HdrLen is in units of 4 bytes) and
+   *     non-zero, so the path meta header is always present.
    * @return 'null' if the path is valid, otherwise an error message.
    */
   private static String validatePath(byte[] path) {
-    if (path.length < 4) {
-      return "Invalid path length: " + path.length;
-    }
     int i0 = ByteBuffer.wrap(path).getInt(0);
     int seg0Len = ByteUtil.readInt(i0, 14, 6);
     int seg1Len = ByteUtil.readInt(i0, 20, 6);

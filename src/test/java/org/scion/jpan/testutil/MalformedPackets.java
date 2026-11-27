@@ -43,6 +43,30 @@ public class MalformedPackets {
   }
 
   /**
+   * @param path raw path (may be empty)
+   * @return a UDP packet with the given raw path and an empty payload.
+   */
+  public static byte[] udpPacketWithPath(byte[] path) {
+    return build(UDP, 0, 0, path, udp(new byte[0]), -1, -1);
+  }
+
+  /**
+   * Create a raw path consisting of a path meta header with the given segment lengths, followed by
+   * `extraBytes` zero bytes (info fields and hop fields).
+   *
+   * @param seg0Len Seg0Len
+   * @param seg1Len Seg1Len
+   * @param seg2Len Seg2Len
+   * @param extraBytes number of bytes following the path meta header
+   * @return raw path
+   */
+  public static byte[] pathMeta(int seg0Len, int seg1Len, int seg2Len, int extraBytes) {
+    ByteBuffer bb = ByteBuffer.allocate(4 + extraBytes);
+    bb.putInt((seg0Len << 12) | (seg1Len << 6) | seg2Len);
+    return bb.array();
+  }
+
+  /**
    * @return named malformed packets.
    */
   public static Map<String, byte[]> all() {
@@ -84,13 +108,6 @@ public class MalformedPackets {
     bb.putShort((short) (8 + payload.length));
     bb.putShort((short) 0); // checksum
     bb.put(payload);
-    return bb.array();
-  }
-
-  /** Path meta header with the given segment lengths followed by `extraBytes` zero bytes. */
-  private static byte[] pathMeta(int seg0Len, int seg1Len, int seg2Len, int extraBytes) {
-    ByteBuffer bb = ByteBuffer.allocate(4 + extraBytes);
-    bb.putInt((seg0Len << 12) | (seg1Len << 6) | seg2Len);
     return bb.array();
   }
 
