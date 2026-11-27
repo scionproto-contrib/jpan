@@ -200,10 +200,6 @@ TODO
 - Hardened validation of malformed packets.
   [#315](https://github.com/scionproto-contrib/jpan/pull/315)
 
-TODO 
-- add tests for untested lines in validator
-- Look at yolo/validation
-
 
 ## [0.8.2] - 2026-11-17
 
